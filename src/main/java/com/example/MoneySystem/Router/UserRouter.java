@@ -4,6 +4,7 @@ import com.example.MoneySystem.Model.User;
 import com.example.MoneySystem.Service.UserService;
 import io.vertx.core.Vertx;
 import io.vertx.ext.web.Router;
+import io.vertx.ext.web.handler.BodyHandler;
 
 public class UserRouter {
   private final Vertx vertx;
@@ -20,11 +21,16 @@ public class UserRouter {
 
   private Router buildUserRouter(){
     final Router userRouter = Router.router(vertx);
-    userRouter.get("/change-password").handler(ctx -> {
+
+    userRouter.route("/*").handler(BodyHandler.create());
+
+    userRouter.put("/change-password").handler(ctx -> {
 
       final User user = ctx.getBodyAsJson().mapTo(User.class);
 
       userService.updatePassword(user);
+
+      ctx.response().putHeader("Content-Type", "application/json;charset=utf-8").end("Password successfully updated!");
     });
 
     return userRouter;
