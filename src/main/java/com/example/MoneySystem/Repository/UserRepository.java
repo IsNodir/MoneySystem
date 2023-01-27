@@ -14,9 +14,9 @@ public class UserRepository {
   public UserRepository () {
   }
 
-  public Future<User> updatePassword(SqlConnection connection,
+  public void updatePassword(SqlConnection connection,
                              User user) {
-    return SqlTemplate
+    SqlTemplate
       .forUpdate(connection, SQL_UPDATE)
       .mapFrom(User.class)
       .execute(user)
@@ -26,8 +26,8 @@ public class UserRepository {
         } else {
           throw new NoSuchElementException(user.getLogin());
         }
-      })
-      .onSuccess(success -> System.out.println("Password updated successfully"))
-      .onFailure(throwable -> System.out.println("Password NOT updated - Error"));
+      });
+//      .onSuccess(success -> System.out.println("Password updated successfully"))
+//      .onFailure(throwable -> System.out.println("Password NOT updated - Error"));
   }
 }
