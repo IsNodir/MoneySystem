@@ -9,14 +9,14 @@ import java.util.NoSuchElementException;
 
 public class UserRepository {
 
-  private static final String SQL_UPDATE = "UPDATE user SET password = #{password}, WHERE login = #{login}";
+  private static final String SQL_UPDATE = "UPDATE users SET password = #{password}, WHERE login = #{login}";
 
   public UserRepository () {
   }
 
-  public void updatePassword(SqlConnection connection,
-                             User user) {
-    SqlTemplate
+  public Future<User> updatePassword(SqlConnection connection,
+                                                User user) {
+    return SqlTemplate
       .forUpdate(connection, SQL_UPDATE)
       .mapFrom(User.class)
       .execute(user)
@@ -26,7 +26,14 @@ public class UserRepository {
         } else {
           throw new NoSuchElementException(user.getLogin());
         }
+      })
+      .onSuccess(res -> {
+        System.out.println("User updated");
+      })
+      .onFailure(res -> {
+        System.out.println("User NOT updated");
       });
+
 //      .onSuccess(success -> System.out.println("Password updated successfully"))
 //      .onFailure(throwable -> System.out.println("Password NOT updated - Error"));
   }

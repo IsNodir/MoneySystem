@@ -8,9 +8,11 @@ import lombok.Setter;
 @Getter
 @Setter
 public class User {
+
   @JsonProperty(value = "login")
   private String login;
 
   @JsonProperty(value = "password")
   private String password;
+
 }

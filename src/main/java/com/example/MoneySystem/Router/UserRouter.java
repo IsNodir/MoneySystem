@@ -22,16 +22,25 @@ public class UserRouter {
   private Router buildUserRouter(){
     final Router userRouter = Router.router(vertx);
 
-    userRouter.route("/*").handler(BodyHandler.create());
+    userRouter.route().handler(BodyHandler.create());
 
     userRouter.put("/change-password").handler(ctx -> {
-
       final User user = ctx.getBodyAsJson().mapTo(User.class);
 
       userService.updatePassword(user);
 
       ctx.response().putHeader("Content-Type", "application/json;charset=utf-8").end("Password successfully updated!");
     });
+
+    userRouter.post("/create-user").handler(ctx -> {
+      final User user = ctx.getBodyAsJson().mapTo(User.class);
+
+      userService.createUser(user);
+
+      ctx.response().putHeader("Content-Type", "application/json;charset=utf-8").end("User successfully created!");
+    });
+
+    //userRouter.post("")
 
     return userRouter;
   }
