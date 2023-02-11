@@ -3,6 +3,7 @@ package com.example.MoneySystem.Service;
 import com.example.MoneySystem.Model.*;
 import com.example.MoneySystem.Repository.FundRepository;
 import com.example.MoneySystem.Repository.UsersRepository;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectReader;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Future;
@@ -174,8 +175,12 @@ public class UsersService {
     });
   }
 
-  public Future<? extends ObjectReader> getDate (DayDTO date) {
-    return fundRepository.selectDate(dbClient, date);
+  public Future<? extends ObjectReader> getDate (ObjectReader date) {
+    try {
+      return fundRepository.selectDate(dbClient, date);
+    } catch (JsonProcessingException e) {
+      throw new RuntimeException(e);
+    }
   }
 }
 

@@ -4,8 +4,10 @@ import com.example.MoneySystem.Model.DateDTO;
 import com.example.MoneySystem.Model.DayDTO;
 import com.example.MoneySystem.Model.FundDTO;
 import com.example.MoneySystem.Model.OperationDTO;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.ObjectReader;
+import com.fasterxml.jackson.databind.json.JsonMapper;
 import io.vertx.core.Future;
 import io.vertx.core.json.JsonObject;
 import io.vertx.pgclient.PgPool;
@@ -14,6 +16,7 @@ import io.vertx.sqlclient.templates.SqlTemplate;
 
 import java.time.LocalDate;
 import java.util.*;
+import java.util.LinkedHashMap;
 
 public class FundRepository {
   private static final String SQL_SELECT_BALANCE_BY_LOGIN_DATES = "SELECT balance, spent, received FROM public.funds f INNER JOIN public.dates d ON d.id = f.date_id WHERE user_login = #{login} AND (day BETWEEN #{dayFrom} AND #{dayTo})";
@@ -29,9 +32,9 @@ public class FundRepository {
   public FundRepository() {
   }
 
-  public Future<? extends ObjectReader> selectDate (PgPool dbClient, DayDTO date) {
+  public Future<? extends ObjectReader> selectDate (PgPool dbClient, ObjectReader date) throws JsonProcessingException {
 
-    LocalDate day = date.getDay().toLocalDate();
+//    LocalDate day = date.getDay();
 
     ObjectMapper mapper = new ObjectMapper();
     mapper.findAndRegisterModules();
@@ -39,7 +42,7 @@ public class FundRepository {
     return SqlTemplate
       .forQuery(dbClient, SQL_SELECT_DATE)
       .mapTo(mapper.readerForMapOf(DayDTO.class).getClass())
-      .execute(Collections.singletonMap("day", day))
+      .execute(Collections.singletonMap("day", date.readValue("day").toString()))
       .map(rowSet -> {
         final RowIterator<? extends ObjectReader> iterator = rowSet.iterator();
         if (iterator.hasNext()) {

@@ -4,6 +4,8 @@ import com.example.MoneySystem.Model.*;
 import com.example.MoneySystem.Service.UsersService;
 import com.example.MoneySystem.Service.UsersValidationHandler;
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.ObjectReader;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Vertx;
 import io.vertx.core.json.JsonObject;
@@ -142,7 +144,11 @@ public class UsersRouter {
   }
 
   private void apiDay(RoutingContext ctx) {
-    final DayDTO date = ctx.getBodyAsJson().mapTo(DayDTO.class);
+    ObjectMapper mapper = new ObjectMapper();
+    mapper.findAndRegisterModules();
+
+    final ObjectReader date = ctx.getBodyAsJson().mapTo(mapper.readerForMapOf(DayDTO.class).getClass());
+
     usersService.getDate(date)
       .onSuccess(res -> {
         try {
