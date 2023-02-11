@@ -42,7 +42,6 @@ public class FundRepository {
       .execute(Collections.singletonMap("day", day))
       .map(rowSet -> {
         final RowIterator<? extends ObjectReader> iterator = rowSet.iterator();
-
         if (iterator.hasNext()) {
           return iterator.next();
         } else {
