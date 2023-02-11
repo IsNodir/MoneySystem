@@ -1,8 +1,11 @@
 package com.example.MoneySystem.Verticles;
 
-import com.example.MoneySystem.Repository.UserRepository;
-import com.example.MoneySystem.Router.UserRouter;
-import com.example.MoneySystem.Service.UserService;
+import com.example.MoneySystem.Repository.FundRepository;
+import com.example.MoneySystem.Repository.UsersRepository;
+import com.example.MoneySystem.Router.UsersRouter;
+import com.example.MoneySystem.Service.ErrorHandler;
+import com.example.MoneySystem.Service.UsersService;
+import com.example.MoneySystem.Service.UsersValidationHandler;
 import com.example.MoneySystem.Utils.DbUtils;
 import io.vertx.core.AbstractVerticle;
 import io.vertx.core.Promise;
@@ -20,14 +23,20 @@ public class MainVerticle extends AbstractVerticle {
 //      .onSuccess(success -> System.out.println(start))
 //      .onFailure(throwable -> throwable.getMessage());
 
+//    UsersDTO user = new UsersDTO();
+//    FundDTO fundDTO = new FundDTO();
+
     final PgPool dbClient = DbUtils.buildDbClient(vertx);
 
-    final UserRepository userRepository = new UserRepository();
-    final UserService userService = new UserService(dbClient, userRepository);
-    final UserRouter userRouter = new UserRouter(vertx, userService);
+    final UsersRepository usersRepository = new UsersRepository();
+    final FundRepository fundRepository = new FundRepository();
+    final UsersService usersService = new UsersService(dbClient, usersRepository, fundRepository);
+    final UsersValidationHandler usersValidationHandler = new UsersValidationHandler(vertx);
+    final UsersRouter usersRouter = new UsersRouter(vertx, usersService, usersValidationHandler);
 
     final Router router = Router.router(vertx);
-    userRouter.setRouter(router);
+    ErrorHandler.buildHandler(router);
+    usersRouter.setRouter(router);
 
     buildHttpServer(vertx, promise, router);
   }
