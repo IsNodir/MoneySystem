@@ -14,9 +14,7 @@ import io.vertx.pgclient.PgPool;
 import io.vertx.sqlclient.RowIterator;
 import io.vertx.sqlclient.templates.SqlTemplate;
 
-import java.time.LocalDate;
 import java.util.*;
-import java.util.LinkedHashMap;
 
 public class FundRepository {
   private static final String SQL_SELECT_BALANCE_BY_LOGIN_DATES = "SELECT balance, spent, received FROM public.funds f INNER JOIN public.dates d ON d.id = f.date_id WHERE user_login = #{login} AND (day BETWEEN #{dayFrom} AND #{dayTo})";
@@ -26,6 +24,11 @@ public class FundRepository {
   private static final String SQL_UPDATE_BALANCE_SENDER = "UPDATE public.funds SET balance = (balance - #{money_amount}) WHERE user_login = #{login} AND id = #{id}";
   private static final String SQL_UPDATE_BALANCE_RECEIVER = "UPDATE public.funds SET balance = (balance + #{money_amount}) WHERE user_login = #{login} AND id = #{id}";
   private static final String SQL_SELECT_DATE = "SELECT day FROM public.dates WHERE day = #{day}";
+  private static final String SQL_UPDATE_SENDER_STATUS = "UPDATE public.operation SET sender_delete = true WHERE id = #{id}";
+  private static final String SQL_UPDATE_RECEIVER_STATUS = "UPDATE public.operation SET receiver_delete = true WHERE id = #{id}";
+  private static final String SQL_DELETE_OPERATION = "DELETE FROM public.operation WHERE id = #{id} AND sender_delete = true AND receiver_delete = true";
+
+
   //  private static final String SQL_INSERT = "INSERT INTO public.users VALUES (#{login},#{password})";
   //  private static final String SQL_SELECT_BY_ID = "SELECT * FROM public.users WHERE login = #{login}";
 
@@ -224,4 +227,62 @@ public class FundRepository {
 //      .onSuccess(v -> System.out.println("Transaction succeeded"))
 //      .onFailure(err -> System.out.println("Transaction failed: " + err.getMessage()));
   }
+
+  public Future<Object> deleteOperation (PgPool dbClient, int id) {
+    return SqlTemplate
+      .forUpdate(dbClient, SQL_DELETE_OPERATION)
+      .execute(Collections.singletonMap("id", id))
+      .flatMap(rowSet -> {
+        if (rowSet.rowCount() > 0) {
+          return Future.succeededFuture();
+        } else {
+          throw new NoSuchElementException();
+        }
+      })
+      .onSuccess(res -> {
+        System.out.println("Delete operation is successful");
+      })
+      .onFailure(res -> {
+        System.out.println("Delete operation failed: " + res.getMessage());
+      });
+  }
+
+  public Future<Object> updateSenderStatus (PgPool dbClient, int id) {
+    return SqlTemplate
+      .forUpdate(dbClient, SQL_UPDATE_SENDER_STATUS)
+      .execute(Collections.singletonMap("id", id))
+      .flatMap(rowSet -> {
+        if (rowSet.rowCount() > 0) {
+          return Future.succeededFuture();
+        } else {
+          throw new NoSuchElementException();
+        }
+      })
+      .onSuccess(res -> {
+        System.out.println("Sender status update is successful");
+      })
+      .onFailure(res -> {
+        System.out.println("Sender status update failed: " + res.getMessage());
+      });
+  }
+
+  public Future<Object> updateReceiverStatus (PgPool dbClient, int id) {
+    return SqlTemplate
+      .forUpdate(dbClient, SQL_UPDATE_RECEIVER_STATUS)
+      .execute(Collections.singletonMap("id", id))
+      .flatMap(rowSet -> {
+        if (rowSet.rowCount() > 0) {
+          return Future.succeededFuture();
+        } else {
+          throw new NoSuchElementException();
+        }
+      })
+      .onSuccess(res -> {
+        System.out.println("Receiver status update is successful");
+      })
+      .onFailure(res -> {
+        System.out.println("Receiver status update failed: " + res.getMessage());
+      });
+  }
+
 }

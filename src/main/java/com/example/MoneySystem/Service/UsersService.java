@@ -182,5 +182,28 @@ public class UsersService {
       throw new RuntimeException(e);
     }
   }
+
+  public void deleteOperation (OperationDTO operationDTO, RoutingContext ctx, String currentUser) {
+
+    if (currentUser.equals(operationDTO.getSender().toString())) {
+      fundRepository.updateSenderStatus(dbClient, operationDTO.getId())
+        .onSuccess(res -> {
+          fundRepository.deleteOperation(dbClient, operationDTO.getId())
+            .onSuccess(result -> {ctx.request().response().end(String.format("Operation deleted for both users"));})
+            .onFailure(result -> {ctx.request().response().end(String.format("Operation deleted for you only: " + result.getMessage()));});
+        })
+        .onFailure(res -> {ctx.request().response().end(String.format("Status change failed: " + res.getMessage()));});
+    } else if (currentUser.equals(operationDTO.getReceiver().toString())) {
+      fundRepository.updateReceiverStatus(dbClient, operationDTO.getId())
+        .onSuccess(res -> {
+          fundRepository.deleteOperation(dbClient, operationDTO.getId())
+            .onSuccess(result -> {ctx.request().response().end(String.format("Operation deleted for both users"));})
+            .onFailure(result -> {ctx.request().response().end(String.format("Operation deleted for you only: " + result.getMessage()));});
+        })
+        .onFailure(res -> {ctx.request().response().end(String.format("Status change failed: " + res.getMessage()));});
+    } else {ctx.request().response().setStatusCode(400).end(String.format("There is no operation with this sender or receiver"));}
+
+  }
+
 }
 

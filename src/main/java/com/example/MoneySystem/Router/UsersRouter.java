@@ -50,8 +50,9 @@ public class UsersRouter {
     router.post("/create-user").handler(usersValidationHandler.create()).handler(this::apiCreateUser);
     router.get("/balance").handler(this::apiBalance);
     router.get("/balance-details").handler(usersValidationHandler.balance()).handler(this::apiBalanceDetails);
-    router.get("/send-operation").handler(this::apiSendOperation);
+    router.post("/send-operation").handler(this::apiSendOperation);
     router.get("/day").handler(this::apiDay);
+    router.delete("/delete-operation").handler(usersValidationHandler.deleteOperation()).handler(this::apiDeleteOperation);
 
     return router;
   }
@@ -167,6 +168,13 @@ public class UsersRouter {
     final String sender = ctx.user().get("login").toString();
 
     usersService.sendMoney(sender, operation, ctx);
+  }
+
+  private void apiDeleteOperation(RoutingContext ctx) {
+    final OperationDTO operation = ctx.getBodyAsJson().mapTo(OperationDTO.class);
+    final String currentUser = ctx.user().get("login").toString();
+
+    usersService.deleteOperation(operation, ctx, currentUser);
   }
 
 }

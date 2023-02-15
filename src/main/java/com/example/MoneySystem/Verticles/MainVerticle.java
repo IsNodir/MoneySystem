@@ -17,14 +17,6 @@ public class MainVerticle extends AbstractVerticle {
 
   @Override
   public void start(Promise<Void> promise) {
-//    final long start = System.currentTimeMillis();
-//
-//    deployApiVerticle(vertx)
-//      .onSuccess(success -> System.out.println(start))
-//      .onFailure(throwable -> throwable.getMessage());
-
-//    UsersDTO user = new UsersDTO();
-//    FundDTO fundDTO = new FundDTO();
 
     final PgPool dbClient = DbUtils.buildDbClient(vertx);
 

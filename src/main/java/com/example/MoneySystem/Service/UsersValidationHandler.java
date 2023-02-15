@@ -1,7 +1,5 @@
 package com.example.MoneySystem.Service;
 
-import com.fasterxml.jackson.annotation.JsonFormat;
-import io.vertx.core.Future;
 import io.vertx.core.Vertx;
 import io.vertx.ext.web.validation.RequestPredicate;
 import io.vertx.ext.web.validation.ValidationHandler;
@@ -10,16 +8,12 @@ import io.vertx.json.schema.SchemaParser;
 import io.vertx.json.schema.SchemaRouter;
 import io.vertx.json.schema.SchemaRouterOptions;
 import io.vertx.json.schema.common.dsl.ObjectSchemaBuilder;
-import io.vertx.json.schema.draft7.dsl.StringFormat;
 
-import java.util.Date;
 import java.util.regex.Pattern;
 
 import static io.vertx.json.schema.common.dsl.Keywords.minLength;
 import static io.vertx.json.schema.common.dsl.Keywords.pattern;
 import static io.vertx.json.schema.common.dsl.Schemas.*;
-import static io.vertx.json.schema.draft7.dsl.Keywords.format;
-import static io.vertx.json.schema.draft7.dsl.Keywords.pattern;
 
 public class UsersValidationHandler {
 
@@ -43,6 +37,20 @@ public class UsersValidationHandler {
   public ValidationHandler update() {
     final SchemaParser schemaParser = buildSchemaParser();
     final ObjectSchemaBuilder schemaBuilder = buildBodySchemaBuilder();
+
+    return ValidationHandler
+      .builder(schemaParser)
+      .predicate(RequestPredicate.BODY_REQUIRED)
+      .body(Bodies.json(schemaBuilder))
+      .build();
+  }
+
+  public ValidationHandler deleteOperation() {
+    final SchemaParser schemaParser = buildSchemaParser();
+    final ObjectSchemaBuilder schemaBuilder = objectSchema()
+      .requiredProperty("id", stringSchema())
+      .requiredProperty("receiver", stringSchema().with(minLength(3)))
+      .requiredProperty("sender", stringSchema().with(minLength(3)));
 
     return ValidationHandler
       .builder(schemaParser)

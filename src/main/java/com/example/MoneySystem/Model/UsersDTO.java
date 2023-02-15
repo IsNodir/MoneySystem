@@ -1,6 +1,5 @@
 package com.example.MoneySystem.Model;
 
-import com.example.MoneySystem.Entity.Users;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 import lombok.Getter;
