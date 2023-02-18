@@ -6,6 +6,7 @@ import lombok.Getter;
 import lombok.Setter;
 
 import java.time.LocalDate;
+import java.util.Date;
 
 @Getter
 @Setter
@@ -16,6 +17,6 @@ public class DayDTO{
 
   @JsonProperty(value = "day")
   @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "dd.MM.yyyy")
-  private LocalDate day;
+  private Date day;
 
 }

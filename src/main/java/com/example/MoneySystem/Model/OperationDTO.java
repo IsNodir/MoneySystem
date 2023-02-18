@@ -1,6 +1,5 @@
 package com.example.MoneySystem.Model;
 
-import com.example.MoneySystem.Entity.Users;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 import lombok.Getter;
@@ -23,6 +22,4 @@ public class OperationDTO {
   @JsonProperty(value = "money_amount")
   private double money_amount;
 
-//  @JsonProperty(value = "fund_id")
-//  private int fundId;
 }

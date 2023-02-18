@@ -16,6 +16,4 @@ public class UsersDTO {
   @JsonProperty(value = "password")
   private String password;
 
-//  @JsonProperty(value = "fund_id")
-//  private int fundId;
 }

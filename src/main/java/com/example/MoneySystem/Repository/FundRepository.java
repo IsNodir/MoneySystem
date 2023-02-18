@@ -7,7 +7,6 @@ import com.example.MoneySystem.Model.OperationDTO;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.ObjectReader;
-import com.fasterxml.jackson.databind.json.JsonMapper;
 import io.vertx.core.Future;
 import io.vertx.core.json.JsonObject;
 import io.vertx.pgclient.PgPool;
@@ -27,10 +26,6 @@ public class FundRepository {
   private static final String SQL_UPDATE_SENDER_STATUS = "UPDATE public.operation SET sender_delete = true WHERE id = #{id}";
   private static final String SQL_UPDATE_RECEIVER_STATUS = "UPDATE public.operation SET receiver_delete = true WHERE id = #{id}";
   private static final String SQL_DELETE_OPERATION = "DELETE FROM public.operation WHERE id = #{id} AND sender_delete = true AND receiver_delete = true";
-
-
-  //  private static final String SQL_INSERT = "INSERT INTO public.users VALUES (#{login},#{password})";
-  //  private static final String SQL_SELECT_BY_ID = "SELECT * FROM public.users WHERE login = #{login}";
 
   public FundRepository() {
   }
@@ -228,6 +223,7 @@ public class FundRepository {
 //      .onFailure(err -> System.out.println("Transaction failed: " + err.getMessage()));
   }
 
+  /** Operation - is transaction of money between users. */
   public Future<Object> deleteOperation (PgPool dbClient, int id) {
     return SqlTemplate
       .forUpdate(dbClient, SQL_DELETE_OPERATION)
@@ -247,6 +243,8 @@ public class FundRepository {
       });
   }
 
+  /** For deleteOperation(). To check before deleting operation (operation - transaction of money between users).
+   *  Both receiver and sender should delete operation in order to delete it from database. */
   public Future<Object> updateSenderStatus (PgPool dbClient, int id) {
     return SqlTemplate
       .forUpdate(dbClient, SQL_UPDATE_SENDER_STATUS)
@@ -266,6 +264,8 @@ public class FundRepository {
       });
   }
 
+  /** For deleteOperation(). To check before deleting operation (operation - transaction of money between users).
+   *  Both receiver and sender should delete operation in order to delete it from database. */
   public Future<Object> updateReceiverStatus (PgPool dbClient, int id) {
     return SqlTemplate
       .forUpdate(dbClient, SQL_UPDATE_RECEIVER_STATUS)

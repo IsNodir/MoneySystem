@@ -148,6 +148,9 @@ public class UsersRouter {
     ObjectMapper mapper = new ObjectMapper();
     mapper.findAndRegisterModules();
 
+//    final DayDTO day = ctx.getBodyAsJson().mapTo(DayDTO.class);
+//    final ObjectReader date = mapper.readerForMapOf(ctx.getBodyAsJson().mapTo(DayDTO.class).getClass());
+//    final ObjectReader date = mapper.readValue(ctx.getBodyAsJson().mapTo(DayDTO.class), DayDTO.class);
     final ObjectReader date = ctx.getBodyAsJson().mapTo(mapper.readerForMapOf(DayDTO.class).getClass());
 
     usersService.getDate(date)

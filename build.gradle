@@ -19,6 +19,21 @@ repositories {
   mavenCentral()
 }
 
+
+//task customFatJar(type:Jar) {
+//  manifest {
+//    attributes 'Main-Class' : 'com.example.MoneySystem.Verticles.MainVerticle'
+//  }
+////  baseName = "money-system-fat"
+//  from { configurations.compile.collect { it.isDirectory() ? it : zipTree(it)} }
+//  with jar
+//}
+
+//task copy(type: Copy) {
+//  from 'build.gradle'
+//  into 'build/libs'
+//}
+
 //val vertxVersion = "4.3.7"
 //val junitJupiterVersion = "5.7.0"
 //
@@ -46,6 +61,7 @@ dependencies {
   implementation 'com.fasterxml.jackson.datatype:jackson-datatype-jsr310:2.6.0'
 
   implementation 'com.fasterxml.jackson.core:jackson-databind:2.9.5'
+  implementation 'com.google.inject:guice:4.0-beta5'
   //implementation 'com.fasterxml.jackson.core:jackson-annotation:2.8.9'
   //implementation 'com.fasterxml.jackson.core:jackson-databind:2.8.9'
 
@@ -56,10 +72,31 @@ dependencies {
 //  testImplementation("org.junit.jupiter:junit-jupiter:$junitJupiterVersion")
 }
 
+
+//task copyAllDependencies(type: Copy) {
+//  from configurations.compileClasspath
+//  into "${buildDir}/output/libs"
+//}
+//build.dependsOn(copyAllDependencies)
+
 java {
   sourceCompatibility = JavaVersion.VERSION_17
   targetCompatibility = JavaVersion.VERSION_17
 }
+
+jar {
+  task copyDependencies(type: Copy) {
+    from configurations.runtimeClasspath
+    into 'build/libs'
+  }
+  manifest {
+    attributes 'Main-Class' : 'Main'
+//    attributes 'Main-Verticle' : 'com.example.MoneySystem.Verticles.MainVerticle'
+    attributes 'Class-Path': configurations.runtimeClasspath.files.collect { it.getName() }.join(' ')
+  }
+}
+
+
 
 //tasks.withType<ShadowJar> {
 //  archiveClassifier.set("fat")
