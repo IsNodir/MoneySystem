@@ -183,26 +183,114 @@ public class UsersService {
     }
   }
 
-  public void deleteOperation (OperationDTO operationDTO, RoutingContext ctx, String currentUser) {
+  /** OLD DELETE OPERATION */
+//  public void deleteOperation (OperationDTO operationDTO, RoutingContext ctx, String currentUser) {
+//
+//    if (currentUser.equals(operationDTO.getSender_login().toString())) {
+//      fundRepository.updateSenderStatus(dbClient, operationDTO.getId())
+//        .onSuccess(res -> {
+//          fundRepository.deleteOperation(dbClient, operationDTO.getId())
+//            .onSuccess(result -> {ctx.request().response().end(String.format("Operation deleted for both users"));})
+//            .onFailure(result -> {ctx.request().response().end(String.format("Operation deleted for you only: " + result.getMessage()));});
+//        })
+//        .onFailure(res -> {ctx.request().response().end(String.format("Status change failed: " + res.getMessage()));});
+//    } else if (currentUser.equals(operationDTO.getReceiver_login().toString())) {
+//      fundRepository.updateReceiverStatus(dbClient, operationDTO.getId())
+//        .onSuccess(res -> {
+//          fundRepository.deleteOperation(dbClient, operationDTO.getId())
+//            .onSuccess(result -> {ctx.request().response().end(String.format("Operation deleted for both users"));})
+//            .onFailure(result -> {ctx.request().response().end(String.format("Operation deleted for you only: " + result.getMessage()));});
+//        })
+//        .onFailure(res -> {ctx.request().response().end(String.format("Status change failed: " + res.getMessage()));});
+//    } else {ctx.request().response().setStatusCode(400).end(String.format("There is no operation with this sender or receiver"));}
+//
+//  }
 
-    if (currentUser.equals(operationDTO.getSender().toString())) {
-      fundRepository.updateSenderStatus(dbClient, operationDTO.getId())
-        .onSuccess(res -> {
-          fundRepository.deleteOperation(dbClient, operationDTO.getId())
-            .onSuccess(result -> {ctx.request().response().end(String.format("Operation deleted for both users"));})
-            .onFailure(result -> {ctx.request().response().end(String.format("Operation deleted for you only: " + result.getMessage()));});
-        })
-        .onFailure(res -> {ctx.request().response().end(String.format("Status change failed: " + res.getMessage()));});
-    } else if (currentUser.equals(operationDTO.getReceiver().toString())) {
-      fundRepository.updateReceiverStatus(dbClient, operationDTO.getId())
-        .onSuccess(res -> {
-          fundRepository.deleteOperation(dbClient, operationDTO.getId())
-            .onSuccess(result -> {ctx.request().response().end(String.format("Operation deleted for both users"));})
-            .onFailure(result -> {ctx.request().response().end(String.format("Operation deleted for you only: " + result.getMessage()));});
-        })
-        .onFailure(res -> {ctx.request().response().end(String.format("Status change failed: " + res.getMessage()));});
-    } else {ctx.request().response().setStatusCode(400).end(String.format("There is no operation with this sender or receiver"));}
+  public void deleteExpense (int expense_id, RoutingContext ctx) {
+    fundRepository.selectExpenseIsOperationById(dbClient, expense_id)
+      .onSuccess(result -> {
 
+        if(result.iterator().next().is_operation())
+        {
+          fundRepository.updateSenderDeleteStatus(dbClient, expense_id)
+            .onSuccess(res -> {
+              if (res.iterator().next().getBoolean("receiver_delete"))
+              {
+                fundRepository.deleteOperation(dbClient, expense_id, res.iterator().next().getInteger("income_id"))
+                  .onSuccess(res2 -> {ctx.request().response().end(String.format("Operation deleted successfully"));})
+                  .onFailure(res2 -> {ctx.request().response().setStatusCode(400).end(String.format("Operation deletion failed: " + res2.getMessage()));});
+              } else {
+                ctx.request().response().end(String.format("Operation deleted for sender only"));
+              }
+            })
+            .onFailure(res -> {ctx.request().response().setStatusCode(400).end(String.format("Expense deletion failed: " + res.getMessage()));});
+
+        } else {
+          fundRepository.deleteExpense(dbClient, expense_id)
+            .onSuccess(res -> {ctx.request().response().end(String.format("Expense deleted successfully"));})
+            .onFailure(res -> {ctx.request().response().setStatusCode(400).end(String.format("Expense deletion failed: " + res.getMessage()));});
+        }
+
+      })
+      .onFailure(result -> {ctx.request().response().setStatusCode(400).end();});
+  }
+
+  public void deleteIncome (int income_id, RoutingContext ctx) {
+    fundRepository.selectIncomeIsOperationById(dbClient, income_id)
+      .onSuccess(result -> {
+
+        if(result.iterator().next().is_operation())
+        {
+          fundRepository.updateReceiverDeleteStatus(dbClient, income_id)
+            .onSuccess(res -> {
+              if (res.iterator().next().getBoolean("sender_delete"))
+              {
+                fundRepository.deleteOperation(dbClient, res.iterator().next().getInteger("expense_id"), income_id)
+                  .onSuccess(res2 -> {ctx.request().response().end(String.format("Operation deleted successfully"));})
+                  .onFailure(res2 -> {ctx.request().response().setStatusCode(400).end(String.format("Operation deletion failed: " + res2.getMessage()));});
+              } else {
+                ctx.request().response().end(String.format("Operation deleted for receiver only"));
+              }
+            })
+            .onFailure(res -> {ctx.request().response().setStatusCode(400).end(String.format("Income deletion failed: " + res.getMessage()));});
+
+        } else {
+          fundRepository.deleteIncome(dbClient, income_id)
+            .onSuccess(res -> {ctx.request().response().end(String.format("Income deleted successfully"));})
+            .onFailure(res -> {ctx.request().response().setStatusCode(400).end(String.format("Income deletion failed: " + res.getMessage()));});
+        }
+
+      })
+      .onFailure(result -> {ctx.request().response().setStatusCode(400).end();});
+  }
+
+  public void insertExpense (ExpensesDTO expense, RoutingContext ctx) {
+    fundRepository.insertExpense(dbClient, expense)
+      .onSuccess(result -> {ctx.request().response().end(String.format("Expense inserted successfully"));})
+      .onFailure(result -> {ctx.request().response().setStatusCode(400).end(String.format("Expense insertion failed: " + result.getMessage()));});
+  }
+
+  public void insertIncome (IncomesDTO income, RoutingContext ctx) {
+    fundRepository.insertIncome(dbClient, income)
+      .onSuccess(result -> {ctx.request().response().end(String.format("Income inserted successfully"));})
+      .onFailure(result -> {ctx.request().response().setStatusCode(400).end(String.format("Income insertion failed: " + result.getMessage()));});
+  }
+
+  public void selectExpensesIncomesByDate (String login, DateDTO date, RoutingContext ctx) {
+    fundRepository.selectExpensesIncomesByDate(dbClient, login, date)
+      .onSuccess(res -> {
+        List<ExpensesIncomesDTO> expensesIncomes = res.stream().toList();
+        ctx.request().response().end(String.format(login + ": " + expensesIncomes.toString()));
+      })
+      .onFailure(res -> {
+        ctx.request().response().setStatusCode(400).end(String.format("Error: " + res.getMessage()));
+      });
+  }
+
+  public void insertOperation (OperationDTO operation, RoutingContext ctx) {
+    fundRepository.insertOperation(dbClient, operation)
+      .onSuccess(result -> {ctx.request().response().end(String.format("Operation inserted successfully"));})
+      .onFailure(result -> {ctx.request().response().setStatusCode(400).end(String.format("Operation insertion failed: " + result.getMessage()));});
   }
 
 }

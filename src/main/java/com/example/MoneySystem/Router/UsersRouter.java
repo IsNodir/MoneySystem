@@ -52,10 +52,18 @@ public class UsersRouter {
     router.get("/balance-details").handler(usersValidationHandler.balance()).handler(this::apiBalanceDetails);
     router.post("/send-operation").handler(this::apiSendOperation);
     router.get("/day").handler(this::apiDay);
-    router.delete("/delete-operation").handler(usersValidationHandler.deleteOperation()).handler(this::apiDeleteOperation);
+    //router.delete("/delete-operation").handler(usersValidationHandler.deleteOperation()).handler(this::apiDeleteOperation);
+    router.post("/spend-operation").handler(this::apiSpend);
+    router.post("/receive-operation").handler(this::apiReceive);
+    router.get("/payments/history").handler(this::apiPaymentsHistory);
+    router.post("/transaction-operation").handler(this::apiTransaction);
+    router.delete("/delete-expense").handler(this::apiDeleteExpense);
+    router.delete("/delete-income").handler(this::apiDeleteIncome);
 
     return router;
   }
+
+
 
   private  void  apiAuthenticate (RoutingContext ctx)
   {
@@ -173,13 +181,53 @@ public class UsersRouter {
     usersService.sendMoney(sender, operation, ctx);
   }
 
-  private void apiDeleteOperation(RoutingContext ctx) {
-    final OperationDTO operation = ctx.getBodyAsJson().mapTo(OperationDTO.class);
-    final String currentUser = ctx.user().get("login").toString();
+//  private void apiDeleteOperation(RoutingContext ctx) {
+//    final OperationDTO operation = ctx.getBodyAsJson().mapTo(OperationDTO.class);
+//    final String currentUser = ctx.user().get("login").toString();
+//
+//    usersService.deleteOperation(operation, ctx, currentUser);
+//  }
 
-    usersService.deleteOperation(operation, ctx, currentUser);
+  private void apiDeleteIncome(RoutingContext ctx) {
+    final int income_id = ctx.getBodyAsJson().mapTo(IncomesDTO.class).getId();
+
+    usersService.deleteIncome(income_id, ctx);
   }
 
+  private void apiDeleteExpense(RoutingContext ctx) {
+    final int expense_id = ctx.getBodyAsJson().mapTo(ExpensesDTO.class).getId();
+
+    usersService.deleteExpense(expense_id, ctx);
+  }
+
+  private void apiSpend(RoutingContext ctx) {
+    final ExpensesDTO expense = ctx.getBodyAsJson().mapTo(ExpensesDTO.class);
+    final String currentUser = ctx.user().get("login").toString();
+
+    if (currentUser.equals(expense.getSender_login()))
+      usersService.insertExpense(expense, ctx);
+    else
+      ctx.request().response().setStatusCode(400).end(String.format("Invalid login"));
+  }
+
+  private void apiReceive(RoutingContext ctx) {
+    final IncomesDTO income = ctx.getBodyAsJson().mapTo(IncomesDTO.class);
+
+    usersService.insertIncome(income, ctx);
+  }
+
+  private void apiPaymentsHistory(RoutingContext ctx) {
+    final DateDTO date = ctx.getBodyAsJson().mapTo(DateDTO.class);
+    final String currentUser = ctx.user().get("login").toString();
+
+    usersService.selectExpensesIncomesByDate(currentUser, date, ctx);
+  }
+
+  private void apiTransaction(RoutingContext ctx) {
+    final OperationDTO operation = ctx.getBodyAsJson().mapTo(OperationDTO.class);
+
+    usersService.insertOperation(operation, ctx);
+  }
 }
 
 
