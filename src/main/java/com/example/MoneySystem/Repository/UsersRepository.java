@@ -19,7 +19,7 @@ public class UsersRepository {
   public UsersRepository() {
   }
 
-  /*
+  /**
    Future <Object> in this case it returns result of Query to database
    So we can access through other classes which calls this method "onSuccess()" and "onFailure()" methods
    or any other methods which gives result of query to database (successful or not)
@@ -76,16 +76,5 @@ public class UsersRepository {
         }
       })
       .onFailure(error -> System.out.println("User NOT found: " + error.getMessage()));
-
-      //    dbClient
-      //      .query(SQL_SELECT_BY_ID)
-      //      .execute(ar -> {
-      //        if (ar.succeeded()) {
-      //          UsersDTO user = (UsersDTO) ar.result();
-      //          System.out.println("Got " + user.getLogin());
-      //        } else {
-      //          System.out.println("Failure: " + ar.cause().getMessage());
-      //        }
-      //      });
   }
 }

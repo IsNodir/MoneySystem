@@ -9,6 +9,8 @@ import lombok.Setter;
 @Getter
 @Setter
 public class UsersDTO {
+  @JsonProperty(value = "id")
+  private int id;
 
   @JsonProperty(value = "login")
   private String login;

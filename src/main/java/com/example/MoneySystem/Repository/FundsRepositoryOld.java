@@ -4,6 +4,7 @@ import com.example.MoneySystem.Model.*;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.ObjectReader;
+import com.fasterxml.jackson.databind.json.JsonMapper;
 import io.vertx.core.Future;
 import io.vertx.core.json.JsonObject;
 import io.vertx.pgclient.PgPool;
@@ -12,7 +13,7 @@ import io.vertx.sqlclient.templates.SqlTemplate;
 
 import java.util.*;
 
-public class FundRepository {
+public class FundsRepositoryOld {
   private static final String SQL_SELECT_BALANCE_BY_LOGIN_DATES = "SELECT balance, spent, received FROM public.funds f INNER JOIN public.dates d ON d.id = f.date_id WHERE user_login = #{login} AND (day BETWEEN #{dayFrom} AND #{dayTo})";
   private static final String SQL_SELECT_BALANCE_BY_LOGIN_DATE = "SELECT balance FROM public.funds, public.users, public.dates WHERE login = #{login} AND day BETWEEN #{dayFrom} AND #{dayTo}";
   private static final String SQL_SELECT_CURRENT_BALANCE_ID = "SELECT max(id) as id FROM public.funds WHERE user_login = #{login}";
@@ -20,6 +21,7 @@ public class FundRepository {
   private static final String SQL_UPDATE_BALANCE_SENDER = "UPDATE public.funds SET balance = (balance - #{money_amount}) WHERE user_login = #{login} AND id = #{id}";
   private static final String SQL_UPDATE_BALANCE_RECEIVER = "UPDATE public.funds SET balance = (balance + #{money_amount}) WHERE user_login = #{login} AND id = #{id}";
   private static final String SQL_SELECT_DATE = "SELECT id FROM public.dates WHERE day = #{day}";
+  private static final String SQL_SELECT_DAY = "SELECT day FROM public.dates WHERE id = $1";
   private static final String SQL_UPDATE_SENDER_STATUS = "UPDATE public.operation SET sender_delete = true WHERE id = #{id}";
   private static final String SQL_UPDATE_RECEIVER_STATUS = "UPDATE public.operation SET receiver_delete = true WHERE id = #{id}";
 
@@ -28,8 +30,8 @@ public class FundRepository {
     "VALUES (#{sender_login}, #{money_amount}, #{date_id}, #{is_operation}) RETURNING id";
   private static final String SQL_INSERT_INCOME = "INSERT INTO public.incomes (receiver_login, money_amount, date_id, is_operation) " +
     "VALUES (#{receiver_login}, #{money_amount}, #{date_id}, #{is_operation}) RETURNING id";
-  private static final String SQL_SELECT_EXPENSE_INCOME_BY_DATE = "(SELECT e.id, money_amount, date_id, is_expense FROM public.expenses e INNER JOIN public.dates d ON d.id = e.date_id WHERE sender_login = #{login} AND day BETWEEN #{dayFrom} AND #{dayTo})" +
-    "UNION ALL (SELECT i.id, money_amount, date_id, is_expense FROM public.incomes i INNER JOIN public.dates d ON d.id = i.date_id WHERE receiver_login = #{login} AND day BETWEEN #{dayFrom} AND #{dayTo}) ORDER BY date_id";
+  private static final String SQL_SELECT_EXPENSE_INCOME_BY_DATE = "(SELECT e.id, money_amount, day, is_expense FROM public.expenses e INNER JOIN public.dates d ON d.id = e.date_id WHERE sender_login = #{login} AND day BETWEEN #{dayFrom} AND #{dayTo})" +
+    "UNION ALL (SELECT i.id, money_amount, day, is_expense FROM public.incomes i INNER JOIN public.dates d ON d.id = i.date_id WHERE receiver_login = #{login} AND day BETWEEN #{dayFrom} AND #{dayTo}) ORDER BY day";
   private static final String SQL_SELECT_EXPENSE_IS_OPERATION = "SELECT is_operation FROM public.expenses WHERE id = #{id}";
   private static final String SQL_SELECT_INCOME_IS_OPERATION = "SELECT is_operation FROM public.incomes WHERE id = #{id}";
   private static final String SQL_UPDATE_SENDER_DELETE_STATUS = "UPDATE public.operation SET sender_delete = true WHERE expense_id = $1 RETURNING receiver_delete, expense_id, income_id";
@@ -45,7 +47,12 @@ public class FundRepository {
   private static final String SQL_DELETE_EXPENSE = "DELETE FROM public.expenses WHERE id = $1";
   private static final String SQL_DELETE_INCOME = "DELETE FROM public.incomes WHERE id = $1";
 
-  public FundRepository() {
+
+  /** return to this sql*/
+//  private static final String SQL_SELECT_EXPENSE_INCOME_BY_DATE = "(SELECT e.id, money_amount, day, is_expense FROM public.expenses e INNER JOIN public.dates d ON d.id = e.date_id WHERE sender_login = $1 AND day BETWEEN $2 AND $3)" +
+//    "UNION ALL (SELECT i.id, money_amount, day, is_expense FROM public.incomes i INNER JOIN public.dates d ON d.id = i.date_id WHERE receiver_login = $1 AND day BETWEEN $2 AND $3) ORDER BY day";
+
+  public FundsRepositoryOld() {
   }
 
   public Future<SqlResult<Void>> insertExpense(PgPool dbClient, ExpensesDTO expenses) {
@@ -68,7 +75,7 @@ public class FundRepository {
 
   /** Operation - is transaction of money between users. */
   // for creating new operation (transaction of money between users)
-  public Future<String> insertOperation(PgPool dbClient, OperationDTO operation) {
+  public Future<String> insertOperation(PgPool dbClient, OLDOperationDTO operation) {
 
     return dbClient.withTransaction(client -> client
         .preparedQuery(SQL_INSERT_EXPENSE_FOR_OPERATION)
@@ -132,6 +139,14 @@ public class FundRepository {
       .onFailure(res -> {System.out.println("Sender Delete status update failed: " + res.getMessage());});
   }
 
+  public Future<RowSet<Row>> selectDay(PgPool dbClient, int id) {
+    return dbClient
+      .preparedQuery(SQL_SELECT_DAY)
+      .execute(Tuple.of(id))
+      .onSuccess(res -> {System.out.println("Date returned successfully");})
+      .onFailure(res -> {System.out.println("Date is not found: " + res.getMessage());});
+  }
+
   public Future<RowSet<ExpensesDTO>> selectExpenseIsOperationById (PgPool dbClient, int expense_id) {
     return SqlTemplate
       .forUpdate(dbClient, SQL_SELECT_EXPENSE_IS_OPERATION)
@@ -158,12 +173,26 @@ public class FundRepository {
       });
   }
 
+  /** Return to this select*/
+//  public Future<RowSet<Row>> selectExpensesIncomesByDate(PgPool dbClient, String login, DateDTO date) {
+//    return dbClient
+//      .preparedQuery(SQL_SELECT_EXPENSE_INCOME_BY_DATE)
+//      .execute(Tuple.of(login, date.getDayFrom().toLocalDate(), date.getDayTo().toLocalDate()))
+//      .onFailure(error -> {System.out.println("Expenses and Incomes for this user NOT found: " + error.getMessage());});
+//  }
+
   public Future<List<ExpensesIncomesDTO>> selectExpensesIncomesByDate (PgPool dbClient, String login, DateDTO date) {
 
     JsonObject object = new JsonObject()
       .put("login", login)
       .put("dayFrom", date.getDayFrom().toLocalDate())
       .put("dayTo", date.getDayTo().toLocalDate());
+
+    ObjectMapper mapper = JsonMapper
+      .builder()
+      .findAndAddModules()
+      .build();
+    mapper.registerModule(new JavaTimeModule());
 
     return SqlTemplate
       .forQuery(dbClient, SQL_SELECT_EXPENSE_INCOME_BY_DATE)
@@ -293,7 +322,7 @@ public class FundRepository {
       .onFailure(error -> System.out.println("Balance for this User NOT found: " + error.getMessage()));
   }
 
-  public Future<Object> sendOperation(PgPool dbClient, String sender, int id, OperationDTO operation) {
+  public Future<Object> sendOperation(PgPool dbClient, String sender, int id, OLDOperationDTO operation) {
 
     JsonObject senderExecute = new JsonObject()
       .put("login", sender)
@@ -318,7 +347,7 @@ public class FundRepository {
       });
   }
 
-  public Future<Object> receiveOperation(PgPool dbClient, OperationDTO operation, int id) {
+  public Future<Object> receiveOperation(PgPool dbClient, OLDOperationDTO operation, int id) {
 
     JsonObject receiverExecute = new JsonObject()
       .put("login", operation.getReceiver_login())
@@ -343,7 +372,7 @@ public class FundRepository {
       });
   }
 
-  public Future<String> sendMoney (PgPool dbClient, String sender, OperationDTO operation, int id) {
+  public Future<String> sendMoney (PgPool dbClient, String sender, OLDOperationDTO operation, int id) {
 
 //    JsonObject senderExecute = new JsonObject()
 //      .put("login", sender)
