@@ -1,6 +1,5 @@
 package com.example.MoneySystem;
 
-import com.example.MoneySystem.Verticles.MainVerticle;
 import io.vertx.core.Vertx;
 import io.vertx.junit5.VertxExtension;
 import io.vertx.junit5.VertxTestContext;
