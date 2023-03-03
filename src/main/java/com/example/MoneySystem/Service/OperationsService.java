@@ -37,21 +37,12 @@ public class OperationsService {
           fundsRepository.selectCurrentBalance(dbClient, operationDTO.getId())
             .onSuccess(currentBalance -> {
 
-              // To check whether balance is ever created for user or not
-              if(currentBalance.iterator().hasNext()) {
                 fundsRepository.insertBalance(dbClient, operationDTO.getIdUser(), operationDTO.getDate(),
                     currentBalance.iterator().next().getDouble("balance"))
                   .onSuccess(res2 -> {
                     checkIsExpenseAndFinishForInsertOperation(operationDTO, ctx, res2);
                   })
                   .onFailure(error -> {ctx.request().response().setStatusCode(400).end(String.format(error.getMessage()));});
-              } else {
-                fundsRepository.insertBalance(dbClient, operationDTO.getIdUser(), operationDTO.getDate(), 0)
-                  .onSuccess(res2 -> {
-                    checkIsExpenseAndFinishForInsertOperation(operationDTO, ctx, res2);
-                  })
-                  .onFailure(error -> {ctx.request().response().setStatusCode(400).end(String.format(error.getMessage()));});
-              }
 
             })
             .onFailure(error -> {ctx.request().response().setStatusCode(400).end(String.format(error.getMessage()));});
@@ -156,52 +147,73 @@ public class OperationsService {
 
   public void insertTransaction (TransactionDTO transactionDTO, RoutingContext ctx) {
     fundsRepository.checkBalance(dbClient, transactionDTO.getDate(), transactionDTO.getIdSender())
-      .onSuccess(res -> {
+      .onSuccess(sender -> {
 
-        // to check whether user has balance for the given Date
-        if(res.iterator().hasNext()) {
-          fundsRepository.checkBalance(dbClient, transactionDTO.getDate(), transactionDTO.getIdReceiver())
-            .onSuccess(res2 -> {
+        // to check whether sender has balance for the given Date
+        if(sender.iterator().hasNext()) {
+          checkReceiverBalanceForGivenDate(transactionDTO, ctx, sender);
+        } else {
 
-              if (res2.iterator().hasNext()) {
+          // if sender doesn't have balance for given (in JSON) date, we select current balance and then insert it into table
+          fundsRepository.selectCurrentBalance(dbClient, transactionDTO.getIdSender())
+            .onSuccess(currentBalanceSender -> {
+              // insertion of balance for sender into table
+              fundsRepository.insertBalance(dbClient, transactionDTO.getIdSender(), transactionDTO.getDate(),
+                    currentBalanceSender.iterator().next().getDouble("balance"))
+                .onSuccess(res -> {
 
-              }else {
-
-              }
+                  checkReceiverBalanceForGivenDate(transactionDTO, ctx, currentBalanceSender);
+                })
+                .onFailure(error -> {ctx.request().response().setStatusCode(400).end(String.format(error.getMessage()));});
 
             })
             .onFailure(error -> {ctx.request().response().setStatusCode(400).end(String.format(error.getMessage()));});
-
-        } else {
-//          fundsRepository.selectCurrentBalance(dbClient, operationDTO.getId())
-//            .onSuccess(currentBalance -> {
-//
-//              // To check whether balance is ever created for user or not
-//              if(currentBalance.iterator().hasNext()) {
-//                fundsRepository.insertBalance(dbClient, operationDTO.getIdUser(), operationDTO.getDate(),
-//                    currentBalance.iterator().next().getDouble("balance"))
-//                  .onSuccess(res2 -> {
-//                    checkIsExpenseAndFinishForInsertOperation(operationDTO, ctx, res2);
-//                  })
-//                  .onFailure(error -> {ctx.request().response().setStatusCode(400).end(String.format(error.getMessage()));});
-//              } else {
-//                fundsRepository.insertBalance(dbClient, operationDTO.getIdUser(), operationDTO.getDate(), 0)
-//                  .onSuccess(res2 -> {
-//                    checkIsExpenseAndFinishForInsertOperation(operationDTO, ctx, res2);
-//                  })
-//                  .onFailure(error -> {ctx.request().response().setStatusCode(400).end(String.format(error.getMessage()));});
-//              }
-//
-//            })
-//            .onFailure(error -> {ctx.request().response().setStatusCode(400).end(String.format(error.getMessage()));});
         }
       })
       .onFailure(error -> {ctx.request().response().setStatusCode(400).end(String.format(error.getMessage()));});
   }
 
-  private void forInsertTransaction (TransactionDTO transactionDTO, RoutingContext ctx) {
-    operationsRepository.insertTransaction(dbClient, transactionDTO)
-      .onSuccess(res -> {ctx.request().response().end(String.format("Transaction succeeded, ID:" + res.iterator().next().getInteger("id")));})
-      .onFailure(error -> {ctx.request().response().setStatusCode(400).end(String.format("Transaction failed: " + error.getMessage()));});
+  private void checkReceiverBalanceForGivenDate(TransactionDTO transactionDTO, RoutingContext ctx, RowSet<Row> currentBalanceSender) {
+
+    fundsRepository.checkBalance(dbClient, transactionDTO.getDate(), transactionDTO.getIdReceiver())
+      .onSuccess(receiver -> {
+
+        // to check whether receiver has balance for the given Date
+        if (receiver.iterator().hasNext()) {
+          forInsertTransaction(transactionDTO, ctx, currentBalanceSender);
+        } else {
+
+          // if receiver doesn't have balance for given (in JSON) date, we select current balance and then insert it into table
+          fundsRepository.selectCurrentBalance(dbClient, transactionDTO.getIdReceiver())
+            .onSuccess(currentBalanceReceiver -> {
+              // insertion of balance for receiver into table
+              fundsRepository.insertBalance(dbClient, transactionDTO.getIdReceiver(), transactionDTO.getDate(),
+                  currentBalanceReceiver.iterator().next().getDouble("balance"))
+                .onSuccess(res3 -> {
+                  forInsertTransaction(transactionDTO, ctx, currentBalanceSender);
+                })
+                .onFailure(error -> {
+                  ctx.request().response().setStatusCode(400).end(String.format(error.getMessage()));
+                });
+            });
+
+        }
+
+      })
+      .onFailure(error -> {ctx.request().response().setStatusCode(400).end(String.format(error.getMessage()));});
+  }
+
+  private void forInsertTransaction (TransactionDTO transactionDTO, RoutingContext ctx, RowSet<Row> balanceOfSender) {
+
+    // To check whether balance is bigger than desired expense
+    if ( (balanceOfSender.iterator().next().getDouble("balance") - transactionDTO.getAmount()) >= 0) {
+      operationsRepository.insertTransaction(dbClient, transactionDTO)
+        .onSuccess(result -> {ctx.request().response().end(String.format("Transaction succeeded, ID:" + result.iterator().next().getInteger("id")));})
+        .onFailure(error -> {ctx.request().response().setStatusCode(400).end(String.format("Transaction failed: " + error.getMessage()));});
+    }
+    else {
+      ctx.request().response().setStatusCode(400).end(String.format("NOT enough money on balance"));
+    }
+
   }
 }
