@@ -3,8 +3,13 @@ package com.example.MoneySystem.Service;
 import com.example.MoneySystem.Model.*;
 import com.example.MoneySystem.Repository.UsersRepository;
 import io.vertx.core.Future;
+import io.vertx.ext.web.RoutingContext;
 import io.vertx.pgclient.PgPool;
 import io.vertx.sqlclient.*;
+
+import java.sql.Date;
+import java.text.SimpleDateFormat;
+import java.time.LocalDate;
 
 public class UsersService {
   private final PgPool dbClient;
@@ -19,8 +24,11 @@ public class UsersService {
     return usersRepository.updatePassword(dbClient, users);
   }
 
-  public Future<SqlResult<Void>> createUser(UsersDTO user) {
-    return usersRepository.insert(dbClient, user);
+  public void insertUser(UsersDTO usersDTO, RoutingContext ctx) {
+    LocalDate date = LocalDate.now();
+    usersRepository.insertUser(dbClient, usersDTO, date)
+      .onSuccess(res -> {ctx.request().response().end(String.format("User created successfully "));})
+      .onFailure(error -> {ctx.request().response().setStatusCode(400).end(String.format("User insertion failed: " + error.getMessage()));});
   }
 
   public Future<UsersDTO> searchByLogin(UsersDTO users) {

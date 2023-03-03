@@ -4,7 +4,7 @@ import com.example.MoneySystem.Model.DateDTO;
 import com.example.MoneySystem.Model.OperationDTO;
 import com.example.MoneySystem.Model.TransactionDTO;
 import com.example.MoneySystem.Service.OperationsService;
-import com.example.MoneySystem.Service.UsersValidationHandler;
+import com.example.MoneySystem.Service.OperationsValidationHandler;
 import io.vertx.core.Vertx;
 import io.vertx.ext.auth.PubSecKeyOptions;
 import io.vertx.ext.auth.jwt.JWTAuth;
@@ -18,12 +18,12 @@ public class OperationsRouter {
 
   private final Vertx vertx;
   private final OperationsService operationsService;
-  private final UsersValidationHandler usersValidationHandler;
+  private final OperationsValidationHandler operationsValidationHandler;
 
-  public OperationsRouter(Vertx vertx, OperationsService operationsService, UsersValidationHandler usersValidationHandler) {
+  public OperationsRouter(Vertx vertx, OperationsService operationsService, OperationsValidationHandler operationsValidationHandler) {
     this.vertx = vertx;
     this.operationsService = operationsService;
-    this.usersValidationHandler = usersValidationHandler;
+    this.operationsValidationHandler = operationsValidationHandler;
   }
 
   public void setRouter(Router router) {
@@ -41,10 +41,10 @@ public class OperationsRouter {
     router.route().handler(BodyHandler.create());
 
     router.route("/*").handler(JWTAuthHandler.create(authProvider));
-    router.post("/new").handler(this::apiNew);
-    router.delete("/delete").handler(this::apiDelete);
-    router.get("/history").handler(this::apiHistory);
-    router.post("/transaction").handler(this::apiTransaction);
+    router.post("/new").handler(operationsValidationHandler.operationsNew()).handler(this::apiNew);
+    router.delete("/delete").handler(operationsValidationHandler.operationsDelete()).handler(this::apiDelete);
+    router.get("/history").handler(operationsValidationHandler.operationsHistory()).handler(this::apiHistory);
+    router.post("/transaction").handler(operationsValidationHandler.operationsTransaction()).handler(this::apiTransaction);
 
     return router;
   }

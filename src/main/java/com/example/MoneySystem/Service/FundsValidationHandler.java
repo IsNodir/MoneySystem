@@ -9,20 +9,23 @@ import io.vertx.json.schema.SchemaRouter;
 import io.vertx.json.schema.SchemaRouterOptions;
 import io.vertx.json.schema.common.dsl.ObjectSchemaBuilder;
 
-import static io.vertx.json.schema.common.dsl.Keywords.minLength;
+import java.util.regex.Pattern;
+
+import static io.vertx.json.schema.common.dsl.Keywords.pattern;
 import static io.vertx.json.schema.common.dsl.Schemas.*;
 
-public class UsersValidationHandler {
+public class FundsValidationHandler {
 
   private final Vertx vertx;
 
-  public UsersValidationHandler(Vertx vertx) {
+  public FundsValidationHandler(Vertx vertx) {
     this.vertx = vertx;
   }
 
-  public ValidationHandler create() {
+  public ValidationHandler fundsCurrent() {
     final SchemaParser schemaParser = buildSchemaParser();
-    final ObjectSchemaBuilder schemaBuilder = buildBodySchemaBuilder();
+    final ObjectSchemaBuilder schemaBuilder = objectSchema()
+      .requiredProperty("id", intSchema());
 
     return ValidationHandler
       .builder(schemaParser)
@@ -31,12 +34,12 @@ public class UsersValidationHandler {
       .build();
   }
 
-  public ValidationHandler update() {
+  public ValidationHandler fundsHistory() {
     final SchemaParser schemaParser = buildSchemaParser();
     final ObjectSchemaBuilder schemaBuilder = objectSchema()
-      .requiredProperty("login", stringSchema().with(minLength(3)))
-      .requiredProperty("password", stringSchema().with(minLength(8)))
-      .requiredProperty("new_password", stringSchema().with(minLength(8)));
+      .requiredProperty("id_user", intSchema())
+      .requiredProperty("dayFrom", stringSchema().with(pattern(Pattern.compile("(0?[1-9]|[12][0-9]|3[01])\\.(0?[1-9]|1[012])\\.((?:19|20)[0-9][0-9])"))))
+      .requiredProperty("dayTo", stringSchema().with(pattern(Pattern.compile("(0?[1-9]|[12][0-9]|3[01])\\.(0?[1-9]|1[012])\\.((?:19|20)[0-9][0-9])"))));
 
     return ValidationHandler
       .builder(schemaParser)
@@ -48,14 +51,4 @@ public class UsersValidationHandler {
   private SchemaParser buildSchemaParser() {
     return SchemaParser.createDraft7SchemaParser(SchemaRouter.create(vertx, new SchemaRouterOptions()));
   }
-
-  private ObjectSchemaBuilder buildBodySchemaBuilder() {
-
-    ObjectSchemaBuilder objectSchemaBuilder = objectSchema()
-      .requiredProperty("login", stringSchema().with(minLength(3)))
-      .requiredProperty("password", stringSchema().with(minLength(8)));
-
-    return objectSchemaBuilder;
-  }
-
 }

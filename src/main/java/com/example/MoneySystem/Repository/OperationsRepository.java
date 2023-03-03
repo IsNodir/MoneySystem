@@ -9,7 +9,7 @@ import io.vertx.sqlclient.Row;
 import io.vertx.sqlclient.RowSet;
 import io.vertx.sqlclient.Tuple;
 
-public class OperationsRepository {
+public class OperationsRepository extends FundsRepository{
 
   private static final String SQL_UPDATE_SENDER_DELETE_STATUS = "UPDATE public.transactions SET sender_delete = true WHERE expense_id = $1 RETURNING receiver_delete, expense_id, income_id";
   private static final String SQL_UPDATE_RECEIVER_DELETE_STATUS = "UPDATE public.transactions SET receiver_delete = true WHERE income_id = $1 RETURNING sender_delete, expense_id, income_id";
@@ -21,11 +21,25 @@ public class OperationsRepository {
     "VALUES ($1, $2) RETURNING id";
   private static final String SQL_SELECT_IS_OPERATION_IS_EXPENSE = "SELECT is_operation, is_expense FROM public.operations WHERE id = $1";
 
-  public Future<RowSet<Row>> insertOperation(PgPool dbClient, OperationDTO operationDTO) {
-    return dbClient
-      .preparedQuery(SQL_INSERT_OPERATION)
-      .execute(Tuple.of(operationDTO.getIdUser(), operationDTO.getAmount(), operationDTO.getDate().toLocalDate(),
-        operationDTO.isOperation(), operationDTO.isExpense()))
+  public Future<RowSet<Row>> insertIncomeOperation(PgPool dbClient, OperationDTO operationDTO) {
+    return dbClient.withTransaction(client -> client
+        .preparedQuery(SQL_INSERT_OPERATION)
+        .execute(Tuple.of(operationDTO.getIdUser(), operationDTO.getAmount(), operationDTO.getDate().toLocalDate(),
+          operationDTO.isOperation(), operationDTO.isExpense()))
+        .flatMap(res -> client
+          .preparedQuery(SQL_UPDATE_BALANCE)
+          .execute(Tuple.of(operationDTO.getAmount(), operationDTO.getIdUser(), operationDTO.getDate().toLocalDate()))))
+      .onFailure(error -> {System.out.println("Operation failed: " + error.getMessage());});
+  }
+
+  public Future<RowSet<Row>> insertExpenseOperation(PgPool dbClient, OperationDTO operationDTO) {
+    return dbClient.withTransaction(client -> client
+        .preparedQuery(SQL_INSERT_OPERATION)
+        .execute(Tuple.of(operationDTO.getIdUser(), operationDTO.getAmount(), operationDTO.getDate().toLocalDate(),
+          operationDTO.isOperation(), operationDTO.isExpense()))
+        .flatMap(res -> client
+          .preparedQuery(SQL_UPDATE_BALANCE)
+          .execute(Tuple.of(-operationDTO.getAmount(), operationDTO.getIdUser(), operationDTO.getDate().toLocalDate()))))
       .onFailure(error -> {System.out.println("Operation failed: " + error.getMessage());});
   }
 
@@ -49,13 +63,19 @@ public class OperationsRepository {
         .execute(Tuple.of(transactionDTO.getIdSender(), transactionDTO.getAmount(), transactionDTO.getDate().toLocalDate(),
           true, true))
         .flatMap(res -> client
-          .preparedQuery(SQL_INSERT_OPERATION)
-          .execute(Tuple.of(transactionDTO.getIdReceiver(), transactionDTO.getAmount(), transactionDTO.getDate().toLocalDate(),
-            true, false))
+          .preparedQuery(SQL_UPDATE_BALANCE)
+          .execute(Tuple.of(-transactionDTO.getAmount(), transactionDTO.getIdSender(), transactionDTO.getDate().toLocalDate()))
           .flatMap(res2 -> client
-              .preparedQuery(SQL_INSERT_TRANSACTION)
-              .execute(Tuple.of(res.iterator().next().getInteger("id"), res2.iterator().next().getInteger("id")))
-          )))
+            .preparedQuery(SQL_INSERT_OPERATION)
+            .execute(Tuple.of(transactionDTO.getIdReceiver(), transactionDTO.getAmount(), transactionDTO.getDate().toLocalDate(),
+              true, false))
+            .flatMap(res3 -> client
+              .preparedQuery(SQL_UPDATE_BALANCE)
+              .execute(Tuple.of(transactionDTO.getAmount(), transactionDTO.getIdReceiver(), transactionDTO.getDate().toLocalDate()))
+              .flatMap(res4 -> client
+                .preparedQuery(SQL_INSERT_TRANSACTION)
+                .execute(Tuple.of(res.iterator().next().getInteger("id"), res3.iterator().next().getInteger("id")))
+          )))))
       .onSuccess(v -> System.out.println("Transaction succeeded"))
       .onFailure(err -> System.out.println("Transaction failed: " + err.getMessage()));
   }

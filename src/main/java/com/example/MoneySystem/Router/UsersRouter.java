@@ -75,11 +75,10 @@ public class UsersRouter {
   private void apiChangePassword (RoutingContext ctx)
   {
     final UsersDTO user = ctx.getBodyAsJson().mapTo(UsersDTO.class);
-    final String login = ctx.user().get("login").toString();
 
     usersService.updatePassword(user)
       .onSuccess(res -> {
-        ctx.request().response().end(String.format("Password updated successfully for " + user.getLogin() + login));
+        ctx.request().response().end(String.format("Password updated successfully for " + user.getLogin()));
       })
       .onFailure(res -> {
         ctx.request().response().end(String.format("Password NOT updated for '" + user.getLogin() + "': " + res.getMessage()));
@@ -87,14 +86,8 @@ public class UsersRouter {
   }
 
   private void apiCreateUser(RoutingContext ctx) {
-    final UsersDTO user = ctx.getBodyAsJson().mapTo(UsersDTO.class);
+    final UsersDTO usersDTO = ctx.getBodyAsJson().mapTo(UsersDTO.class);
 
-    usersService.createUser(user)
-      .onSuccess(res -> {
-        ctx.request().response().end(String.format("User created successfully: " + user.getLogin()));
-      })
-      .onFailure(res -> {
-        ctx.request().response().end(String.format("User '" + user.getLogin() + "' NOT created: " + res.getMessage()));
-      });
+    usersService.insertUser(usersDTO, ctx);
   }
 }

@@ -3,6 +3,7 @@ package com.example.MoneySystem.Verticles;
 import com.example.MoneySystem.Router.OperationsRouter;
 import com.example.MoneySystem.Service.ErrorHandler;
 import com.example.MoneySystem.Service.OperationsService;
+import com.example.MoneySystem.Service.OperationsValidationHandler;
 import com.example.MoneySystem.Service.UsersValidationHandler;
 import com.example.MoneySystem.Utils.DbUtils;
 import io.vertx.core.AbstractVerticle;
@@ -19,8 +20,8 @@ public class OperationsVerticle extends AbstractVerticle {
       final PgPool dbClient = DbUtils.buildDbClient(vertx);
 
       final OperationsService operationsService = new OperationsService(dbClient);
-      final UsersValidationHandler usersValidationHandler = new UsersValidationHandler(vertx);
-      final OperationsRouter operationsRouter = new OperationsRouter(vertx, operationsService, usersValidationHandler);
+      final OperationsValidationHandler operationsValidationHandler = new OperationsValidationHandler(vertx);
+      final OperationsRouter operationsRouter = new OperationsRouter(vertx, operationsService, operationsValidationHandler);
 
       final Router router = Router.router(vertx);
       ErrorHandler.buildHandler(router);

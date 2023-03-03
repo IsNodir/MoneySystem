@@ -1,20 +1,23 @@
 package com.example.MoneySystem.Repository;
 
+import com.example.MoneySystem.Model.OperationDTO;
 import com.example.MoneySystem.Model.UsersDTO;
 import io.vertx.core.Future;
 import io.vertx.pgclient.PgPool;
-import io.vertx.sqlclient.RowIterator;
-import io.vertx.sqlclient.SqlResult;
+import io.vertx.sqlclient.*;
 import io.vertx.sqlclient.templates.SqlTemplate;
 
+import java.sql.Date;
+import java.time.LocalDate;
 import java.util.Collections;
 import java.util.NoSuchElementException;
 
-public class UsersRepository {
+public class UsersRepository extends FundsRepository{
 
-  private static final String SQL_UPDATE = "UPDATE public.users SET password = #{password} WHERE login = #{login}";
+  private static final String SQL_UPDATE = "UPDATE public.users SET password = #{new_password} WHERE login = #{login} AND password = #{password}";
   private static final String SQL_INSERT = "INSERT INTO public.users VALUES (#{login},#{password})";
   private static final String SQL_SELECT_BY_ID = "SELECT * FROM public.users WHERE login = #{login}";
+  private static final String SQL_INSERT_USER = "INSERT INTO public.users (login, password) VALUES ($1, $2) RETURNING id";
 
   public UsersRepository() {
   }
@@ -46,18 +49,14 @@ public class UsersRepository {
       });
   }
 
-  public Future<SqlResult<Void>> insert(PgPool dbClient,
-                                        UsersDTO user) {
-    return SqlTemplate
-      .forUpdate(dbClient, SQL_INSERT)
-      .mapFrom(UsersDTO.class)
-      .execute(user)
-      .onSuccess(res -> {
-        System.out.println("User inserted successfully");
-      })
-      .onFailure(res -> {
-        System.out.println("User NOT inserted: " + res.getMessage());
-      });
+  public Future<RowSet<Row>> insertUser(PgPool dbClient, UsersDTO usersDTO, LocalDate date) {
+    return dbClient.withTransaction(client -> client
+        .preparedQuery(SQL_INSERT_USER)
+        .execute(Tuple.of(usersDTO.getLogin(), usersDTO.getPassword()))
+        .flatMap(res -> client
+          .preparedQuery(SQL_INSERT_BALANCE)
+          .execute(Tuple.of(res.iterator().next().getInteger("id"), date, 0))))
+      .onFailure(error -> {System.out.println("Operation failed: " + error.getMessage());});
   }
 
   // To return password. Used in service class for checking whether user entered the same password as before

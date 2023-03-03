@@ -3,6 +3,7 @@ package com.example.MoneySystem.Service;
 import com.example.MoneySystem.Model.DateDTO;
 import com.example.MoneySystem.Model.OperationDTO;
 import com.example.MoneySystem.Model.TransactionDTO;
+import com.example.MoneySystem.Repository.FundsRepository;
 import com.example.MoneySystem.Repository.OperationsRepository;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.pgclient.PgPool;
@@ -19,14 +20,71 @@ public class OperationsService {
 
   private final OperationsRepository operationsRepository = new OperationsRepository();
 
+  private final FundsRepository fundsRepository = new FundsRepository();
+
   public OperationsService(PgPool dbClient) {
     this.dbClient = dbClient;
   }
 
   public void insertOperation (OperationDTO operationDTO, RoutingContext ctx) {
-    operationsRepository.insertOperation(dbClient, operationDTO)
-      .onSuccess(res -> {ctx.request().response().end(String.format("Operation inserted successfully"));})
-      .onFailure(error -> {ctx.request().response().setStatusCode(400).end(String.format("Operation insertion failed: " + error.getMessage()));});
+    fundsRepository.checkBalance(dbClient, operationDTO.getDate(), operationDTO.getIdUser())
+      .onSuccess(res -> {
+
+        // to check whether user has balance for the given Date
+        if(res.iterator().hasNext()) {
+          checkIsExpenseAndFinishForInsertOperation(operationDTO, ctx, res);
+        } else {
+          fundsRepository.selectCurrentBalance(dbClient, operationDTO.getId())
+            .onSuccess(currentBalance -> {
+
+              // To check whether balance is ever created for user or not
+              if(currentBalance.iterator().hasNext()) {
+                fundsRepository.insertBalance(dbClient, operationDTO.getIdUser(), operationDTO.getDate(),
+                    currentBalance.iterator().next().getDouble("balance"))
+                  .onSuccess(res2 -> {
+                    checkIsExpenseAndFinishForInsertOperation(operationDTO, ctx, res2);
+                  })
+                  .onFailure(error -> {ctx.request().response().setStatusCode(400).end(String.format(error.getMessage()));});
+              } else {
+                fundsRepository.insertBalance(dbClient, operationDTO.getIdUser(), operationDTO.getDate(), 0)
+                  .onSuccess(res2 -> {
+                    checkIsExpenseAndFinishForInsertOperation(operationDTO, ctx, res2);
+                  })
+                  .onFailure(error -> {ctx.request().response().setStatusCode(400).end(String.format(error.getMessage()));});
+              }
+
+            })
+            .onFailure(error -> {ctx.request().response().setStatusCode(400).end(String.format(error.getMessage()));});
+        }
+      })
+      .onFailure(error -> {ctx.request().response().setStatusCode(400).end(String.format(error.getMessage()));});
+  }
+
+  // insertOperation uses it
+  private void checkIsExpenseAndFinishForInsertOperation(OperationDTO operationDTO, RoutingContext ctx, RowSet<Row> res) {
+
+    // To check whether it is expense
+    if (operationDTO.isExpense()) {
+
+      // To check whether balance is bigger than desired expense amount
+      if ( (res.iterator().next().getDouble("balance") - operationDTO.getAmount()) >= 0) {
+        operationsRepository.insertExpenseOperation(dbClient, operationDTO)
+          .onSuccess(result -> {
+            ctx.request().response().end(String.format("Operation inserted successfully"));
+          })
+          .onFailure(error -> {ctx.request().response().setStatusCode(400).end(String.format("Operation insertion failed: " + error.getMessage()));});
+      }
+      else {
+        ctx.request().response().setStatusCode(400).end(String.format("NOT enough money on balance"));
+      }
+
+    } else {
+      operationsRepository.insertIncomeOperation(dbClient, operationDTO)
+        .onSuccess(result -> {
+          ctx.request().response().end(String.format("Operation inserted successfully"));
+        })
+        .onFailure(error -> {ctx.request().response().setStatusCode(400).end(String.format("Operation insertion failed: " + error.getMessage()));});
+    }
   }
 
   public void deleteOperation (int id, RoutingContext ctx) {
@@ -70,6 +128,7 @@ public class OperationsService {
       .onFailure(error -> {ctx.request().response().setStatusCode(400).end(String.format("Operation deletion failed: " + error.getMessage()));});
   }
 
+  // deleteOperation uses it
   private void deleteTransaction(RoutingContext ctx, RowSet<Row> res) {
     operationsRepository.deleteTransaction(dbClient, res.iterator().next().getInteger("expense_id"),
         res.iterator().next().getInteger("income_id"))
@@ -96,6 +155,51 @@ public class OperationsService {
   }
 
   public void insertTransaction (TransactionDTO transactionDTO, RoutingContext ctx) {
+    fundsRepository.checkBalance(dbClient, transactionDTO.getDate(), transactionDTO.getIdSender())
+      .onSuccess(res -> {
+
+        // to check whether user has balance for the given Date
+        if(res.iterator().hasNext()) {
+          fundsRepository.checkBalance(dbClient, transactionDTO.getDate(), transactionDTO.getIdReceiver())
+            .onSuccess(res2 -> {
+
+              if (res2.iterator().hasNext()) {
+
+              }else {
+
+              }
+
+            })
+            .onFailure(error -> {ctx.request().response().setStatusCode(400).end(String.format(error.getMessage()));});
+
+        } else {
+//          fundsRepository.selectCurrentBalance(dbClient, operationDTO.getId())
+//            .onSuccess(currentBalance -> {
+//
+//              // To check whether balance is ever created for user or not
+//              if(currentBalance.iterator().hasNext()) {
+//                fundsRepository.insertBalance(dbClient, operationDTO.getIdUser(), operationDTO.getDate(),
+//                    currentBalance.iterator().next().getDouble("balance"))
+//                  .onSuccess(res2 -> {
+//                    checkIsExpenseAndFinishForInsertOperation(operationDTO, ctx, res2);
+//                  })
+//                  .onFailure(error -> {ctx.request().response().setStatusCode(400).end(String.format(error.getMessage()));});
+//              } else {
+//                fundsRepository.insertBalance(dbClient, operationDTO.getIdUser(), operationDTO.getDate(), 0)
+//                  .onSuccess(res2 -> {
+//                    checkIsExpenseAndFinishForInsertOperation(operationDTO, ctx, res2);
+//                  })
+//                  .onFailure(error -> {ctx.request().response().setStatusCode(400).end(String.format(error.getMessage()));});
+//              }
+//
+//            })
+//            .onFailure(error -> {ctx.request().response().setStatusCode(400).end(String.format(error.getMessage()));});
+        }
+      })
+      .onFailure(error -> {ctx.request().response().setStatusCode(400).end(String.format(error.getMessage()));});
+  }
+
+  private void forInsertTransaction (TransactionDTO transactionDTO, RoutingContext ctx) {
     operationsRepository.insertTransaction(dbClient, transactionDTO)
       .onSuccess(res -> {ctx.request().response().end(String.format("Transaction succeeded, ID:" + res.iterator().next().getInteger("id")));})
       .onFailure(error -> {ctx.request().response().setStatusCode(400).end(String.format("Transaction failed: " + error.getMessage()));});

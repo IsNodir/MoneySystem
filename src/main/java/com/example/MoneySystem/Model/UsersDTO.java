@@ -18,4 +18,7 @@ public class UsersDTO {
   @JsonProperty(value = "password")
   private String password;
 
+  @JsonProperty(value = "new_password")
+  private String newPassword;
+
 }

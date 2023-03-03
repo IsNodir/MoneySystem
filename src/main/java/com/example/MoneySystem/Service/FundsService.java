@@ -2,9 +2,7 @@ package com.example.MoneySystem.Service;
 
 import com.example.MoneySystem.Model.DateDTO;
 import com.example.MoneySystem.Model.FundDTO;
-import com.example.MoneySystem.Model.OperationDTO;
 import com.example.MoneySystem.Repository.FundsRepository;
-import io.vertx.core.Future;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.pgclient.PgPool;
 
