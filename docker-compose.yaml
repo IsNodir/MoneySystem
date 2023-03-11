@@ -5,6 +5,8 @@ services:
     build: .
     ports:
       - "8080:8080"
+    depends_on:
+      - db_money_system
 
   db_money_system:
     container_name: db_MoneySystem
@@ -17,5 +19,5 @@ services:
     environment:
       - POSTGRES_PASSWORD=db265
       - POSTGRES_USER=postgres
-#      - POSTGRES_DATABASE=moneysystemdocker
+      #- POSTGRES_DATABASE=moneysystemdocker2
 

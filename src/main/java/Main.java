@@ -7,8 +7,9 @@ public class Main {
 
   public static void main(String[] args){
 
-    Vertx.vertx().deployVerticle(new UsersVerticle());
-    Vertx.vertx().deployVerticle(new OperationsVerticle());
-    Vertx.vertx().deployVerticle(new FundsVerticle());
+    Vertx vertx = Vertx.vertx();
+    vertx.deployVerticle(new UsersVerticle());
+    vertx.deployVerticle(new OperationsVerticle());
+    vertx.deployVerticle(new FundsVerticle());
   }
 }

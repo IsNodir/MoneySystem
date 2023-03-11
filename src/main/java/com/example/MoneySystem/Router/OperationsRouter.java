@@ -56,7 +56,8 @@ public class OperationsRouter {
 
   private void apiDelete (RoutingContext ctx) {
     final int id = ctx.getBodyAsJson().getInteger("id");
-    operationsService.deleteOperation(id, ctx);
+    final int idUser = ctx.getBodyAsJson().getInteger("id_user");
+    operationsService.deleteOperation(id, idUser, ctx);
   }
 
   private void apiHistory (RoutingContext ctx) {

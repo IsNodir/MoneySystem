@@ -70,7 +70,8 @@ public class OperationsValidationHandler {
   public ValidationHandler operationsDelete() {
     final SchemaParser schemaParser = buildSchemaParser();
     final ObjectSchemaBuilder schemaBuilder = objectSchema()
-      .requiredProperty("id", intSchema());
+      .requiredProperty("id", intSchema())
+      .requiredProperty("id_user", intSchema());
 
     return ValidationHandler
       .builder(schemaParser)

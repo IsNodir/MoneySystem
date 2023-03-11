@@ -25,11 +25,10 @@ public class UsersRouter {
     this.usersValidationHandler = usersValidationHandler;
   }
 
-  public void setRouter(Router router) {
-    router.mountSubRouter("/api/v1/users", buildUserRouter());
+  public void setRouter(Router router) {router.mountSubRouter("/api/v1/users", buildUserRouter());
   }
 
-  private Router buildUserRouter() {
+  public Router buildUserRouter() {
     final Router router = Router.router(vertx);
 
     JWTAuth authProvider = JWTAuth.create(vertx, new JWTAuthOptions()

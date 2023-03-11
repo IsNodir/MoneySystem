@@ -33,7 +33,7 @@ public class OperationsVerticle extends AbstractVerticle {
     private void buildHttpServer(Vertx vertx,
                                  Promise<Void> promise,
                                  Router router) {
-      final int port = 8081;
+      final int port = 8080;
 
       vertx.createHttpServer()
         .requestHandler(router)

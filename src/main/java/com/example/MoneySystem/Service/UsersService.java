@@ -5,10 +5,7 @@ import com.example.MoneySystem.Repository.UsersRepository;
 import io.vertx.core.Future;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.pgclient.PgPool;
-import io.vertx.sqlclient.*;
 
-import java.sql.Date;
-import java.text.SimpleDateFormat;
 import java.time.LocalDate;
 
 public class UsersService {

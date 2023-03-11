@@ -11,6 +11,7 @@ import io.vertx.sqlclient.Row;
 import io.vertx.sqlclient.RowSet;
 
 import java.sql.Date;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -78,53 +79,89 @@ public class OperationsService {
     }
   }
 
-  public void deleteOperation (int id, RoutingContext ctx) {
-    operationsRepository.selectIsOperationIsExpense(dbClient, id)
-      .onSuccess(result -> {
-        if(result.iterator().next().getBoolean("is_operation")) {
+  public void deleteOperation (int id, int idUser, RoutingContext ctx) {
 
-          if (result.iterator().next().getBoolean("is_expense")) {
-            operationsRepository.updateSenderDeleteStatus(dbClient, id)
-              .onSuccess(res -> {
+      operationsRepository.selectIsOperationIsExpense(dbClient, id)
+        .onSuccess(result -> {
+          if(result.iterator().next().getBoolean("is_operation")) {
 
-                if(res.iterator().next().getBoolean("receiver_delete")) {
-                  deleteTransaction(ctx, res);
-                } else {
-                  ctx.request().response().end(String.format("Transaction deleted for you (sender) only"));
-                }
+            if (result.iterator().next().getBoolean("is_expense")) {
+              operationsRepository.selectTransactionByExpenseId(dbClient, id)
+                .onSuccess(res -> {
 
-              })
-              .onFailure(error -> {ctx.request().response().setStatusCode(400).end(String.format("Operation deletion failed: " + error.getMessage()));});
+                  if(res.iterator().next().getBoolean("receiver_delete")) {
+                    deleteTransaction(ctx, res, idUser);
+                  } else {
+                    operationsRepository.updateSenderDeleteStatus(dbClient, id)
+                      .onSuccess(res2 -> {ctx.request().response().end(String.format("Transaction deleted by you (sender) only"));})
+                      .onFailure(error -> {ctx.request().response().setStatusCode(400).end(String.format("Operation deletion failed: " + error.getMessage()));});
+
+                  }
+
+                })
+                .onFailure(error -> {ctx.request().response().setStatusCode(400).end(String.format("Operation deletion failed: " + error.getMessage()));});
+            } else {
+              operationsRepository.selectTransactionByIncomeId(dbClient, id)
+                .onSuccess(res -> {
+
+                  if(res.iterator().next().getBoolean("sender_delete")) {
+                    deleteTransaction(ctx, res, idUser);
+                  } else {
+                    operationsRepository.updateReceiverDeleteStatus(dbClient, id)
+                      .onSuccess(res2 -> {ctx.request().response().end(String.format("Transaction deleted by you (receiver) only"));})
+                      .onFailure(error -> {ctx.request().response().setStatusCode(400).end(String.format("Operation deletion failed: " + error.getMessage()));});
+
+                  }
+
+                })
+                .onFailure(error -> {ctx.request().response().setStatusCode(400).end(String.format("Operation deletion failed: " + error.getMessage()));});
+            }
+
           } else {
-            operationsRepository.updateReceiverDeleteStatus(dbClient, id)
-              .onSuccess(res -> {
-
-                if(res.iterator().next().getBoolean("sender_delete")) {
-                  deleteTransaction(ctx, res);
-                } else {
-                  ctx.request().response().end(String.format("Transaction deleted for you (receiver) only"));
-                }
-
-              })
+            operationsRepository.deleteOperation(dbClient, id)
+              .onSuccess(res -> {ctx.request().response().end(String.format("Operation deleted successfully"));})
               .onFailure(error -> {ctx.request().response().setStatusCode(400).end(String.format("Operation deletion failed: " + error.getMessage()));});
           }
 
-        } else {
-          operationsRepository.deleteOperation(dbClient, id)
-            .onSuccess(res -> {ctx.request().response().end(String.format("Operation deleted successfully"));})
-            .onFailure(error -> {ctx.request().response().setStatusCode(400).end(String.format("Operation deletion failed: " + error.getMessage()));});
-        }
-
-      })
-      .onFailure(error -> {ctx.request().response().setStatusCode(400).end(String.format("Operation deletion failed: " + error.getMessage()));});
+        })
+        .onFailure(error -> {ctx.request().response().setStatusCode(400).end(String.format("Operation deletion failed: " + error.getMessage()));});
   }
 
   // deleteOperation uses it
-  private void deleteTransaction(RoutingContext ctx, RowSet<Row> res) {
-    operationsRepository.deleteTransaction(dbClient, res.iterator().next().getInteger("expense_id"),
-        res.iterator().next().getInteger("income_id"))
-      .onSuccess(output -> {ctx.request().response().end(String.format("Transaction deleted successfully"));})
-      .onFailure(error -> {ctx.request().response().setStatusCode(400).end(String.format("Transaction deletion failed: " + error.getMessage()));});
+  private void deleteTransaction(RoutingContext ctx, RowSet<Row> res, int userId) {
+
+    LocalDate currentDate = LocalDate.now();
+
+    // selecting id of second user of transaction
+    operationsRepository.selectUserIdByOperationId(dbClient, res.iterator().next().getInteger("expense_id"),
+      res.iterator().next().getInteger("income_id"),  userId)
+        .onSuccess(res1 -> {
+          checkOrCreateCurrentDateBalance(Date.valueOf(currentDate), res1.iterator().next().getInteger("id_user"), ctx);
+          checkOrCreateCurrentDateBalance(Date.valueOf(currentDate), userId, ctx);
+          operationsRepository.deleteTransaction(dbClient, res.iterator().next().getInteger("expense_id"),
+              res.iterator().next().getInteger("income_id"), Date.valueOf(currentDate))
+            .onSuccess(output -> {ctx.request().response().end(String.format("Transaction deleted successfully"));})
+            .onFailure(error -> {ctx.request().response().setStatusCode(400).end(String.format("Transaction deletion failed: " + error.getMessage()));});
+        });
+  }
+
+  private void checkOrCreateCurrentDateBalance (Date currentDate, int userId, RoutingContext ctx) {
+    fundsRepository.checkBalance(dbClient, currentDate, userId)
+      .onSuccess(res2 -> {
+        // to check whether user has balance for the given Date
+        if (!(res2.iterator().hasNext())) {
+
+          // if sender doesn't have balance for current date, we select current balance and then insert it into table
+          fundsRepository.selectCurrentBalance(dbClient, userId)
+            .onSuccess(currentBalance -> {
+              fundsRepository.insertBalance(dbClient, userId, currentDate,
+                  currentBalance.iterator().next().getDouble("balance"))
+                .onFailure(error -> {ctx.request().response().setStatusCode(400).end();});
+            })
+            .onFailure(error -> {ctx.request().response().setStatusCode(400).end();});
+        }
+      })
+      .onFailure(error -> {ctx.request().response().setStatusCode(400).end();});
   }
 
   public void selectOperationsByDate (DateDTO dateDTO, RoutingContext ctx) {

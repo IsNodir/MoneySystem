@@ -32,7 +32,7 @@ public class FundsVerticle extends AbstractVerticle {
   private void buildHttpServer(Vertx vertx,
                                Promise<Void> promise,
                                Router router) {
-    final int port = 8082;
+    final int port = 8081;
 
     vertx.createHttpServer()
       .requestHandler(router)

@@ -31,7 +31,7 @@ public class UsersVerticle extends AbstractVerticle {
   private void buildHttpServer(Vertx vertx,
                                Promise<Void> promise,
                                Router router) {
-    final int port = 8080;
+    final int port = 8082;
 
     vertx.createHttpServer()
       .requestHandler(router)
