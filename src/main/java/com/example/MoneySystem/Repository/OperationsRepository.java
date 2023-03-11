@@ -64,7 +64,7 @@ public class OperationsRepository extends FundsRepository{
     return dbClient
       .preparedQuery(SQL_SELECT_OPERATIONS_BY_DATE)
       .execute(Tuple.of(dateDTO.getIdUser(), dateDTO.getDayFrom().toLocalDate(), dateDTO.getDayTo().toLocalDate()))
-      .onFailure(error -> {System.out.println("Operation selection failed: " + error.getMessage());});
+      .onFailure(error -> {error.printStackTrace();});
   }
 
   public Future<RowSet<Row>> selectTransactionByIncomeId(PgPool dbClient, int income_id) {
