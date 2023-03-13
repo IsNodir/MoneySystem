@@ -23,7 +23,7 @@ public class UsersVerticle extends AbstractVerticle {
 
     final Router router = Router.router(vertx);
     ErrorHandler.buildHandler(router);
-    usersRouter.setRouter(router);
+    usersRouter.setRouter(router, "/api/v1/users", "/protected/*", vertx);
 
     buildHttpServer(vertx, promise, router);
   }

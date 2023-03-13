@@ -20,11 +20,11 @@ public class FundsVerticle extends AbstractVerticle {
 
     final FundsService fundsService = new FundsService(dbClient);
     final FundsValidationHandler fundsValidationHandler = new FundsValidationHandler(vertx);
-    final FundsRouter fundsRouter = new FundsRouter(vertx, fundsService, fundsValidationHandler);
+    final FundsRouter fundsRouter = new FundsRouter(fundsService, fundsValidationHandler);
 
     final Router router = Router.router(vertx);
     ErrorHandler.buildHandler(router);
-    fundsRouter.setRouter(router);
+    fundsRouter.setRouter(router, "/api/v1/balance", "/*", vertx);
 
     buildHttpServer(vertx, promise, router);
   }

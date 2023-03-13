@@ -104,7 +104,7 @@ public class OperationsRepository extends FundsRepository{
       .onFailure(err -> System.out.println("Transaction failed: " + err.getMessage()));
   }
 
-  public Future<String> deleteTransaction(PgPool dbClient, int expense_id, int income_id, Date currentDate) {
+  public Future<Boolean> deleteTransaction(PgPool dbClient, int expense_id, int income_id, Date currentDate) {
     return dbClient.withTransaction(client -> client
         .preparedQuery(SQL_DELETE_OPERATION)
         .execute(Tuple.of(expense_id))
@@ -119,7 +119,7 @@ public class OperationsRepository extends FundsRepository{
               .preparedQuery(SQL_UPDATE_BALANCE)
               .execute(Tuple.of(-incomeDelete.iterator().next().getDouble("amount"),
                 incomeDelete.iterator().next().getInteger("id_user"), currentDate.toLocalDate()))
-              .map("Operation deleted")))));
+              .map(true)))));
   }
 
   public Future<RowSet<Row>> updateReceiverDeleteStatus(PgPool dbClient, int income_id) {

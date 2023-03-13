@@ -4,40 +4,23 @@ import com.example.MoneySystem.Model.DateDTO;
 import com.example.MoneySystem.Service.FundsService;
 import com.example.MoneySystem.Service.FundsValidationHandler;
 import io.vertx.core.Vertx;
-import io.vertx.ext.auth.PubSecKeyOptions;
-import io.vertx.ext.auth.jwt.JWTAuth;
-import io.vertx.ext.auth.jwt.JWTAuthOptions;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
-import io.vertx.ext.web.handler.BodyHandler;
-import io.vertx.ext.web.handler.JWTAuthHandler;
 
-public class FundsRouter {
-  private final Vertx vertx;
+public class FundsRouter extends RoutersAssistant{
   private final FundsService fundsService;
   private final FundsValidationHandler fundsValidationHandler;
 
-  public FundsRouter(Vertx vertx, FundsService fundsService, FundsValidationHandler fundsValidationHandler) {
-    this.vertx = vertx;
+  public FundsRouter(FundsService fundsService, FundsValidationHandler fundsValidationHandler) {
     this.fundsService = fundsService;
     this.fundsValidationHandler = fundsValidationHandler;
   }
 
-  public void setRouter(Router router) {
-    router.mountSubRouter("/api/v1/balance", buildUserRouter());
-  }
+  @Override
+  protected Router buildRouter(Router router, Vertx vertx, String authPath) {
 
-  private Router buildUserRouter() {
-    final Router router = Router.router(vertx);
+    super.buildRouter(router, vertx, authPath);
 
-    JWTAuth authProvider = JWTAuth.create(vertx, new JWTAuthOptions()
-      .addPubSecKey(new PubSecKeyOptions()
-        .setAlgorithm("HS256")
-        .setBuffer("keyboard cat")));
-
-    router.route().handler(BodyHandler.create());
-
-    router.route("/*").handler(JWTAuthHandler.create(authProvider));
     router.get("/current").handler(fundsValidationHandler.fundsCurrent()).handler(this::apiCurrent);
     router.get("/history").handler(fundsValidationHandler.fundsHistory()).handler(this::apiHistory);
 

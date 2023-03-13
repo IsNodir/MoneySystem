@@ -6,15 +6,11 @@ import com.example.MoneySystem.Service.UsersValidationHandler;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Vertx;
 import io.vertx.core.json.JsonObject;
-import io.vertx.ext.auth.PubSecKeyOptions;
 import io.vertx.ext.auth.jwt.JWTAuth;
-import io.vertx.ext.auth.jwt.JWTAuthOptions;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
-import io.vertx.ext.web.handler.BodyHandler;
-import io.vertx.ext.web.handler.JWTAuthHandler;
 
-public class UsersRouter {
+public class UsersRouter extends RoutersAssistant{
   private final Vertx vertx;
   private final UsersService usersService;
   private final UsersValidationHandler usersValidationHandler;
@@ -25,23 +21,14 @@ public class UsersRouter {
     this.usersValidationHandler = usersValidationHandler;
   }
 
-  public void setRouter(Router router) {router.mountSubRouter("/api/v1/users", buildUserRouter());
-  }
+  @Override
+  protected Router buildRouter(Router router, Vertx vertx, String authPath) {
 
-  public Router buildUserRouter() {
-    final Router router = Router.router(vertx);
-
-    JWTAuth authProvider = JWTAuth.create(vertx, new JWTAuthOptions()
-      .addPubSecKey(new PubSecKeyOptions()
-        .setAlgorithm("HS256")
-        .setBuffer("keyboard cat")));
-
-    router.route().handler(BodyHandler.create());
+    super.buildRouter(router, vertx, authPath);
 
     router.post("/login").handler(this::apiAuthenticate);
     router.post("/create").handler(usersValidationHandler.create()).handler(this::apiCreateUser);
-    router.route("/*").handler(JWTAuthHandler.create(authProvider));
-    router.put("/change-password").handler(usersValidationHandler.update()).handler(this::apiChangePassword);
+    router.put("/protected/change-password").handler(usersValidationHandler.update()).handler(this::apiChangePassword);
 
     return router;
   }
@@ -50,10 +37,7 @@ public class UsersRouter {
   {
     final UsersDTO user = ctx.getBodyAsJson().mapTo(UsersDTO.class);
 
-    JWTAuth authProvider = JWTAuth.create(vertx, new JWTAuthOptions()
-      .addPubSecKey(new PubSecKeyOptions()
-        .setAlgorithm("HS256")
-        .setBuffer("keyboard cat")));
+    JWTAuth authProvider = authProvider(vertx);
 
     usersService.searchByLogin(user).onComplete( (AsyncResult<UsersDTO> ar) -> {
       if (ar.succeeded()) {
