@@ -39,20 +39,21 @@ public class UsersRouter extends RoutersAssistant{
 
     JWTAuth authProvider = authProvider(vertx);
 
-    usersService.searchByLogin(user).onComplete( (AsyncResult<UsersDTO> ar) -> {
-      if (ar.succeeded()) {
-        if (
-          ar.result().getLogin().equals(user.getLogin()) &&
-            ar.result().getPassword().equals(user.getPassword())) {
-          ctx.request().response()
-            .putHeader("JWT", authProvider.generateToken(new JsonObject().put("login", user.getLogin()))).end();
+      usersService.searchByLogin(user).onComplete( (AsyncResult<UsersDTO> ar) -> {
+        if (ar.succeeded()) {
+          if (
+            ar.result().getLogin().equals(user.getLogin()) &&
+              ar.result().getPassword().equals(user.getPassword())) {
+            ctx.request().response()
+              .putHeader("JWT", authProvider.generateToken(new JsonObject().put("login", user.getLogin()))).end();
+          } else {
+            ctx.fail(401);
+          }
         } else {
-          ctx.fail(401);
+          System.out.println("Failure: " + ar.cause().getMessage());
         }
-      } else {
-        System.out.println("Failure: " + ar.cause().getMessage());
-      }
-    });
+      });
+
   }
 
   private void apiChangePassword (RoutingContext ctx)
@@ -74,3 +75,40 @@ public class UsersRouter extends RoutersAssistant{
     usersService.insertUser(usersDTO, ctx);
   }
 }
+
+
+
+
+
+
+
+/** some not working attempts of /login check for authorized users */
+
+//String jwtHeader = ctx.request().getHeader("Authorization");
+//Credentials credentials = new Credentials() {
+//  @Override
+//  public JsonObject toJson() {
+//    JsonObject jsonObject = new JsonObject();
+//    jsonObject.put("Authorization", jwtHeader);
+//    return jsonObject;
+//  }
+//};
+//
+//    if (jwtHeader.isEmpty() || authProvider.authenticate(credentials).failed()) {
+//      usersService.searchByLogin(user).onComplete( (AsyncResult<UsersDTO> ar) -> {
+//  if (ar.succeeded()) {
+//  if (
+//  ar.result().getLogin().equals(user.getLogin()) &&
+//  ar.result().getPassword().equals(user.getPassword())) {
+//  ctx.request().response()
+//  .putHeader("JWT", authProvider.generateToken(new JsonObject().put("login", user.getLogin()))).end();
+//  } else {
+//  ctx.fail(401);
+//  }
+//  } else {
+//  System.out.println("Failure: " + ar.cause().getMessage());
+//  }
+//  });
+//  } else if (authProvider.authenticate(credentials).succeeded()){
+//  ctx.request().response().end(String.format("You are already logged in"));
+//  }
