@@ -5,6 +5,8 @@ import com.example.MoneySystem.Model.OperationDTO;
 import com.example.MoneySystem.Model.TransactionDTO;
 import com.example.MoneySystem.Repository.FundsRepository;
 import com.example.MoneySystem.Repository.OperationsRepository;
+import com.fasterxml.jackson.annotation.JsonFormat;
+import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.pgclient.PgPool;
 import io.vertx.sqlclient.Row;
@@ -35,7 +37,7 @@ public class OperationsService {
         if(res.iterator().hasNext()) {
           checkIsExpenseAndFinishForInsertOperation(operationDTO, ctx, res);
         } else {
-          fundsRepository.selectCurrentBalance(dbClient, operationDTO.getId())
+          fundsRepository.selectCurrentBalance(dbClient, operationDTO.getIdUser())
             .onSuccess(currentBalance -> {
 
                 fundsRepository.insertBalance(dbClient, operationDTO.getIdUser(), operationDTO.getDate(),

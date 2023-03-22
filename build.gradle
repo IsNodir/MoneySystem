@@ -58,12 +58,15 @@ dependencies {
   implementation 'io.vertx:vertx-sql-client-templates:4.3.7'
   implementation 'io.vertx:vertx-web-validation:4.3.7'
   implementation 'io.vertx:vertx-auth-jwt:4.3.7'
+  implementation 'io.vertx:vertx-junit5:4.3.7'
   implementation 'com.fasterxml.jackson.datatype:jackson-datatype-jsr310:2.14.2'
   implementation 'com.ongres.scram:common:2.1'
   implementation 'com.ongres.scram:client:2.1'
 
   implementation 'com.fasterxml.jackson.core:jackson-databind:2.9.5'
   implementation 'com.google.inject:guice:4.0-beta5'
+
+  testImplementation("org.assertj:assertj-core:3.24.2")
   //implementation 'com.fasterxml.jackson.core:jackson-annotation:2.8.9'
   //implementation 'com.fasterxml.jackson.core:jackson-databind:2.8.9'
 
@@ -84,6 +87,10 @@ dependencies {
 java {
   sourceCompatibility = JavaVersion.VERSION_17
   targetCompatibility = JavaVersion.VERSION_17
+}
+
+test {
+  useJUnitPlatform()
 }
 
 jar {

@@ -24,7 +24,7 @@ public class UsersService {
   public void insertUser(UsersDTO usersDTO, RoutingContext ctx) {
     LocalDate date = LocalDate.now();
     usersRepository.insertUser(dbClient, usersDTO, date)
-      .onSuccess(res -> {ctx.request().response().end(String.format("User created successfully "));})
+      .onSuccess(res -> {ctx.request().response().end(String.format("User created successfully"));})
       .onFailure(error -> {ctx.request().response().setStatusCode(400).end(String.format("User insertion failed: " + error.getMessage()));});
   }
 

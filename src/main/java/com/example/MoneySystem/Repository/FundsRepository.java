@@ -23,6 +23,7 @@ public class FundsRepository {
     return dbClient
       .preparedQuery(SQL_SELECT_CURRENT_BALANCE)
       .execute(Tuple.of(id))
+//      .onSuccess(close -> { dbClient.close(); })
       .onFailure(error -> {System.out.println("Current balance selection failed: " + error.getMessage());});
   }
 
