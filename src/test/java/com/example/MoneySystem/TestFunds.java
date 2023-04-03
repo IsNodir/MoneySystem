@@ -18,7 +18,7 @@ import java.util.stream.Collectors;
 
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 @ExtendWith(VertxExtension.class)
-public class TestFunds {
+public class TestFunds extends ContainersEnvironment {
 
   private static WebClient webClient;
 

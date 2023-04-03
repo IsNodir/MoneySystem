@@ -67,6 +67,11 @@ dependencies {
   implementation 'com.google.inject:guice:4.0-beta5'
 
   testImplementation("org.assertj:assertj-core:3.24.2")
+
+  testImplementation "org.testcontainers:testcontainers:1.17.6"
+  testImplementation "org.testcontainers:junit-jupiter:1.17.6"
+  testImplementation "org.testcontainers:postgresql:1.17.6"
+
   //implementation 'com.fasterxml.jackson.core:jackson-annotation:2.8.9'
   //implementation 'com.fasterxml.jackson.core:jackson-databind:2.8.9'
 

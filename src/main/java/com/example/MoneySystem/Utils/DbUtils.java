@@ -42,7 +42,8 @@ public class DbUtils {
   private static Properties configureProperties() {
     final Properties properties = new Properties();
 
-    final InputStream inputStream = DbUtils.class.getClassLoader().getResourceAsStream("application.properties");
+    final InputStream inputStream = DbUtils.class.getClassLoader().getResourceAsStream("application-test.yaml");
+    //application.properties
 
     try {
       properties.load(inputStream);
