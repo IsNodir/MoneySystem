@@ -40,9 +40,16 @@ public class DbUtils {
   }
 
   private static Properties configureProperties() {
+
+    try {
+      Thread.sleep(3000);
+    } catch (InterruptedException e) {
+      throw new RuntimeException(e);
+    }
+
     final Properties properties = new Properties();
 
-    final InputStream inputStream = DbUtils.class.getClassLoader().getResourceAsStream("application-test.yaml");
+    final InputStream inputStream = DbUtils.class.getClassLoader().getResourceAsStream("application-test.properties");
     //application.properties
 
     try {

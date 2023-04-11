@@ -1,33 +1,72 @@
 package com.example.MoneySystem;
 
 import com.example.MoneySystem.Verticles.FundsVerticle;
+import io.vertx.config.ConfigRetriever;
+import io.vertx.config.ConfigRetrieverOptions;
+import io.vertx.config.ConfigStoreOptions;
 import io.vertx.core.Vertx;
+import io.vertx.core.VertxOptions;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.client.WebClient;
 import io.vertx.ext.web.codec.BodyCodec;
 import io.vertx.junit5.VertxExtension;
 import io.vertx.junit5.VertxTestContext;
+import org.junit.After;
+import org.junit.Before;
 import org.junit.jupiter.api.*;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.testcontainers.containers.PostgreSQLContainer;
+import org.testcontainers.junit.jupiter.Container;
+import org.testcontainers.junit.jupiter.Testcontainers;
 
+import java.io.FileWriter;
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Paths;
-import java.util.stream.Collectors;
 
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 @ExtendWith(VertxExtension.class)
-public class TestFunds extends ContainersEnvironment {
+@Testcontainers
+// extends ContainersEnvironment
+public class TestFunds {
 
   private static WebClient webClient;
 
+  @Container
+  public static PostgreSQLContainer postgreSQLContainer = PostgresTestContainer.getInstance();
+
   @BeforeAll
-  static void setup(Vertx vertx, VertxTestContext testContext) {
+  static void setup(Vertx vertx, VertxTestContext testContext) throws IOException{
+
+    FileWriter writer = new FileWriter("src/main/resources/application-test.properties");
+
+    writer.write("datasource.host=" + postgreSQLContainer.getHost() + "\n");
+    writer.write("datasource.port=" + postgreSQLContainer.getFirstMappedPort() + "\n");
+    writer.write("datasource.database=moneysystem2\n");
+    writer.write("datasource.username=postgres\n");
+    writer.write("datasource.password=db265\n");
+
+    writer.close();
+
     webClient = WebClient.create(vertx);
-    vertx.deployVerticle(new FundsVerticle(), testContext.succeeding(fundsVerticleId ->
-      testContext.completeNow()));
+    vertx.deployVerticle(new FundsVerticle(), testContext.succeeding(id -> testContext.completeNow()));
   }
+
+//  @Before
+//  void vertxUp (Vertx vertx, VertxTestContext testContext) {
+//    webClient = WebClient.create(vertx);
+//    vertx.deployVerticle(new FundsVerticle(), testContext.succeeding(id -> testContext.completeNow()));
+//  }
+
+//  private static void startVerticle() {
+//    VertxTestContext testContext = new VertxTestContext();
+//    vertx.deployVerticle(new FundsVerticle(), testContext.succeeding(id -> testContext.completeNow()));
+//  }
+
+
+//  @BeforeAll
+//  static void deployVerticle(Vertx vertx, VertxTestContext testContext) {
+//    webClient = WebClient.create(vertx);
+//    vertx.deployVerticle(new FundsVerticle(), testContext.succeeding(id -> testContext.completeNow()));
+//  }
 
   @Test
   @Order(1)
@@ -143,3 +182,40 @@ public class TestFunds extends ContainersEnvironment {
 //      throw testContext.causeOfFailure();
 //    }
 //  }
+
+
+/** OLD GET FROM application.properties */
+
+//JsonObject config = new JsonObject()
+//  .put("datasource.host", postgreSQLContainer.getHost())
+//  .put("datasource.port", postgreSQLContainer.getFirstMappedPort())
+//  .put("datasource.database", "moneysystem2")
+//  .put("datasource.username", "postgres")
+//  .put("datasource.password", "db265");
+
+//  ConfigStoreOptions fileStoreOptions = new ConfigStoreOptions()
+//  .setType("file")
+//  .setFormat("properties")
+//  .setConfig(new JsonObject().put("path", "application.properties"))
+//  .setOptional(false);
+//
+//  ConfigRetrieverOptions options = new ConfigRetrieverOptions()
+//    .addStore(fileStoreOptions)
+//    .setScanPeriod(-1) // disable scanning for changes
+//    .setIncludeDefaultStores(true);
+//
+//  ConfigRetriever retriever = ConfigRetriever.create(vertx, options);
+//
+//    retriever.getConfig(ar -> {
+//      if (ar.succeeded()) {
+//      JsonObject fileStoreConfig = ar.result();
+//      // merge values from file store with values from config object
+//      config.mergeIn(fileStoreConfig);
+//      // use updated config
+//      String updatedHost = config.getString("datasource.host");
+//      String updatedPort = config.getString("datasource.host");
+//      System.out.println("Updated host value: " + updatedHost);
+//      } else {
+//      System.out.println("Failed to retrieve configuration: " + ar.cause());
+//      }
+//      });

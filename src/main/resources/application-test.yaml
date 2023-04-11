@@ -1,6 +1,0 @@
-datasource:
-  host: ${DB_HOST}
-  port: 5432
-  database: ${DB_DATABASE}
-  username: ${DB_USERNAME}
-  password: ${DB_PASSWORD}
