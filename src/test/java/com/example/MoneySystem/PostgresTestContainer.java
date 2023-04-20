@@ -25,7 +25,7 @@ public class PostgresTestContainer extends PostgreSQLContainer<PostgresTestConta
   public void start() {
     super.start();
     //container.get
-    // System.setProperty("DB_URL", container.getJdbcUrl());
+//    System.setProperty("DB_URL", container.getJdbcUrl());
 //    System.setProperty("DB_HOST", container.getHost());
 //    System.setProperty("DB_DATABASE", container.getDatabaseName());
 //    System.setProperty("DB_PORT", String.valueOf(container.getFirstMappedPort()));

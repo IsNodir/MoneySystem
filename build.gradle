@@ -63,6 +63,7 @@ dependencies {
   implementation 'com.fasterxml.jackson.datatype:jackson-datatype-jsr310:2.14.2'
   implementation 'com.ongres.scram:common:2.1'
   implementation 'com.ongres.scram:client:2.1'
+  implementation 'org.postgresql:postgresql:42.3.1'
 
   implementation 'com.fasterxml.jackson.core:jackson-databind:2.9.5'
   implementation 'com.google.inject:guice:4.0-beta5'

@@ -47,6 +47,17 @@ public class FundsRepository {
       .execute(Tuple.of(idUser, date.toLocalDate()))
       .onFailure(error -> {System.out.println("Balance check failed: " + error.getMessage());});
   }
-
-
 }
+
+
+
+
+
+/** Query to select whole DB */
+
+//  public Future<RowSet<Row>> selectWholeDbTest(PgPool dbClient) {
+//    return dbClient
+//      .query("SELECT * FROM public.users u INNER JOIN public.funds f ON u.id = f.id_user INNER JOIN public.operations o ON u.id = o.id_user INNER JOIN public.transactions t ON o.id = t.expense_id")
+//      .execute();
+//      //.onFailure(error -> {System.out.println("Current balance selection failed: " + error.getMessage());});
+//  }

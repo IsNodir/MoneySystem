@@ -37,3 +37,16 @@ public class FundsRouter extends RoutersAssistant{
     fundsService.selectBalances(dateDTO, ctx);
   }
 }
+
+
+
+
+
+
+/** api to select whole db */
+
+//    router.get("/all").handler(this::apiAll);
+
+//  private void apiAll(RoutingContext ctx) {
+//    fundsService.selectAll(ctx);
+//  }

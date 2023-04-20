@@ -1,42 +1,137 @@
 package com.example.MoneySystem;
 
+import com.example.MoneySystem.Verticles.FundsVerticle;
 import com.example.MoneySystem.Verticles.OperationsVerticle;
+import com.example.MoneySystem.Verticles.UsersVerticle;
 import io.vertx.core.Vertx;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.client.WebClient;
+import io.vertx.ext.web.client.WebClientSession;
 import io.vertx.ext.web.codec.BodyCodec;
 import io.vertx.junit5.VertxExtension;
 import io.vertx.junit5.VertxTestContext;
 import org.junit.jupiter.api.*;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.testcontainers.containers.PostgreSQLContainer;
+import org.testcontainers.junit.jupiter.Container;
+import org.testcontainers.junit.jupiter.Testcontainers;
 
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 @ExtendWith(VertxExtension.class)
+@Testcontainers
 public class TestOperations {
   private static WebClient webClient;
 
+  private static WebClientSession webClientSession;
+
+  public static void setWebClientSessionHeader(String header) {
+    webClientSession.addHeader("Authorization", "Bearer %s".formatted(header));
+  }
+
+  @Container
+  public static PostgreSQLContainer postgreSQLContainer = PostgresTestContainer.getInstance();
+
   @BeforeAll
   static void setup(Vertx vertx, VertxTestContext testContext) {
+    System.setProperty("DB_PORT", String.valueOf(postgreSQLContainer.getFirstMappedPort()));
+    System.setProperty("DB_HOST", postgreSQLContainer.getHost());
+    System.setProperty("DB_DATABASE", postgreSQLContainer.getDatabaseName());
+    System.setProperty("DB_USERNAME", postgreSQLContainer.getUsername());
+    System.setProperty("DB_PASSWORD", postgreSQLContainer.getPassword());
+
+    vertx.deployVerticle(new UsersVerticle(), testContext.succeeding(id -> testContext.completeNow()));
+    vertx.deployVerticle(new OperationsVerticle(), testContext.succeeding(id -> testContext.completeNow()));
+
     webClient = WebClient.create(vertx);
-    vertx.deployVerticle(new OperationsVerticle(), testContext.succeeding(operationsVerticleId ->
-      testContext.completeNow()));
+    webClientSession = WebClientSession.create(webClient);
+
+    CreateTables.create(postgreSQLContainer.getJdbcUrl());
+
+//    JsonObject user1Json = new JsonObject();
+//    user1Json.put("login", "Brad");
+//    user1Json.put("password", "111333000");
+//    JsonObject user2Json = new JsonObject();
+//    user2Json.put("login", "Alice");
+//    user2Json.put("password", "222444111");
+//    CreateAndAuthorizeUserTest.initiateUser(testContext, webClient, user1Json);
+//    CreateAndAuthorizeUserTest.createUser(testContext, webClient, user2Json);
   }
 
   @Test
   @Order(1)
+  @DisplayName("Initiate user 1")
+  void initiateUser (VertxTestContext testContext) {
+
+    JsonObject userJson = new JsonObject();
+    userJson.put("login", "Brad");
+    userJson.put("password", "111333000");
+
+    webClient.post(8082, "localhost", "/api/v1/users/create")
+      .as(BodyCodec.string())
+      .sendJsonObject(userJson)
+      .onComplete(testContext.succeeding(response -> {
+        testContext.verify(() ->
+          Assertions.assertAll(
+            () -> Assertions.assertEquals(200, response.statusCode()),
+            () -> Assertions.assertEquals("User created successfully", response.body())
+          )
+        );
+
+        webClient.post(8082, "localhost", "/api/v1/users/login")
+          .sendJsonObject(userJson)
+          .onComplete(testContext.succeeding(response2 -> {
+            testContext.verify(() ->
+              Assertions.assertAll(
+                () -> Assertions.assertEquals(200, response2.statusCode()),
+                () -> Assertions.assertTrue(!response2.getHeader("JWT").toString().isEmpty())
+              )
+            );
+
+            TestOperations.setWebClientSessionHeader(response2.getHeader("JWT"));
+            testContext.completeNow();
+          }));
+      }))
+      .onFailure(error -> {System.out.println(error.getMessage());});
+  }
+
+  @Test
+  @Order(2)
+  @DisplayName("Create user 2")
+  void createUser (VertxTestContext testContext) {
+
+    JsonObject userJson = new JsonObject();
+    userJson.put("login", "Alice");
+    userJson.put("password", "222444111");
+
+    webClient.post(8082, "localhost", "/api/v1/users/create")
+      .as(BodyCodec.string())
+      .sendJsonObject(userJson)
+      .onComplete(testContext.succeeding(response -> {
+        testContext.verify(() ->
+          Assertions.assertAll(
+            () -> Assertions.assertEquals(200, response.statusCode()),
+            () -> Assertions.assertEquals("User created successfully", response.body())
+          )
+        );
+
+        testContext.completeNow();
+      }));
+  }
+
+  @Test
+  @Order(3)
   @DisplayName("New Operation")
   void newOperation (VertxTestContext testContext) {
 
     JsonObject jsonObject = new JsonObject();
     jsonObject.put("id_user", 1);
     jsonObject.put("amount", 10000);
-    jsonObject.put("date", "22.03.2023");
+    jsonObject.put("date", "20.04.2023");
     jsonObject.put("is_operation", false);
-    jsonObject.put("is_expense", true);
+    jsonObject.put("is_expense", false);
 
-    webClient.post(8080, "localhost", "/api/v1/operations/new")
+    webClientSession.post(8080, "localhost", "/api/v1/operations/new")
       .as(BodyCodec.string())
-      .putHeader("Authorization", "Bearer %s".formatted("eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJsb2dpbiI6IkFsbGEiLCJpYXQiOjE2Nzc2MDIyMTV9.u187eQvJGbxBCndT2zAdWkxgNUe8O97PeMHon0ju_3Q"))
       .sendJsonObject(jsonObject)
       .onComplete(testContext.succeeding(response -> {
         testContext.verify(() ->
@@ -51,17 +146,41 @@ public class TestOperations {
   }
 
   @Test
-  @Order(2)
+  @Order(4)
+  @DisplayName("Operation History")
+  void operationHistory2 (VertxTestContext testContext) {
+
+    JsonObject jsonObject = new JsonObject();
+    jsonObject.put("id_user", 1);
+    jsonObject.put("dayFrom", "18.02.2023");
+    jsonObject.put("dayTo", "25.04.2023");
+
+    webClientSession.get(8080, "localhost", "/api/v1/operations/history")
+      .as(BodyCodec.string())
+      .sendJsonObject(jsonObject)
+      .onComplete(testContext.succeeding(response -> {
+        testContext.verify(() ->
+          Assertions.assertAll(
+            () -> Assertions.assertEquals(200, response.statusCode()),
+            () -> Assertions.assertTrue(response.body().contains("Income ID: 1; Money_amount: +10000.0; Date: 2023-04-20"))
+          )
+        );
+
+        testContext.completeNow();
+      }));
+  }
+
+  @Test
+  @Order(5)
   @DisplayName("Delete Operation")
   void deleteOperation (VertxTestContext testContext) {
 
     JsonObject jsonObject = new JsonObject();
-    jsonObject.put("id", 75);
+    jsonObject.put("id", 1);
     jsonObject.put("id_user", 1);
 
-    webClient.delete(8080, "localhost", "/api/v1/operations/delete")
+    webClientSession.delete(8080, "localhost", "/api/v1/operations/delete")
       .as(BodyCodec.string())
-      .putHeader("Authorization", "Bearer %s".formatted("eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJsb2dpbiI6IkFsbGEiLCJpYXQiOjE2Nzc2MDIyMTV9.u187eQvJGbxBCndT2zAdWkxgNUe8O97PeMHon0ju_3Q"))
       .sendJsonObject(jsonObject)
       .onComplete(testContext.succeeding(response -> {
         testContext.verify(() ->
@@ -79,24 +198,23 @@ public class TestOperations {
   }
 
   @Test
-  @Order(3)
+  @Order(6)
   @DisplayName("Operation History")
   void operationHistory (VertxTestContext testContext) {
 
     JsonObject jsonObject = new JsonObject();
     jsonObject.put("id_user", 1);
     jsonObject.put("dayFrom", "18.02.2023");
-    jsonObject.put("dayTo", "23.03.2023");
+    jsonObject.put("dayTo", "25.04.2023");
 
-    webClient.get(8080, "localhost", "/api/v1/operations/history")
+    webClientSession.get(8080, "localhost", "/api/v1/operations/history")
       .as(BodyCodec.string())
-      .putHeader("Authorization", "Bearer %s".formatted("eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJsb2dpbiI6IkFsbGEiLCJpYXQiOjE2Nzc2MDIyMTV9.u187eQvJGbxBCndT2zAdWkxgNUe8O97PeMHon0ju_3Q"))
       .sendJsonObject(jsonObject)
       .onComplete(testContext.succeeding(response -> {
         testContext.verify(() ->
           Assertions.assertAll(
-            () -> Assertions.assertEquals(200, response.statusCode()),
-            () -> Assertions.assertTrue(response.body().contains("Expense ID: 5; Money_amount: -6782.9; Date: 2023-03-01"))
+            () -> Assertions.assertEquals(200, response.statusCode())
+            //() -> Assertions.assertTrue(response.body().contains("Expense ID: 5; Money_amount: -6782.9; Date: 2023-03-01"))
           )
         );
 
@@ -105,19 +223,18 @@ public class TestOperations {
   }
 
   @Test
-  @Order(4)
+  @Order(7)
   @DisplayName("Transaction Operation")
   void transactionOperation (VertxTestContext testContext) {
 
     JsonObject jsonObject = new JsonObject();
     jsonObject.put("id_sender", 1);
-    jsonObject.put("id_receiver", 3);
+    jsonObject.put("id_receiver", 2);
     jsonObject.put("amount", 10000);
-    jsonObject.put("date", "22.03.2023");
+    jsonObject.put("date", "20.04.2023");
 
-    webClient.post(8080, "localhost", "/api/v1/operations/transaction")
+    webClientSession.post(8080, "localhost", "/api/v1/operations/transaction")
       .as(BodyCodec.string())
-      .putHeader("Authorization", "Bearer %s".formatted("eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJsb2dpbiI6IkFsbGEiLCJpYXQiOjE2Nzc2MDIyMTV9.u187eQvJGbxBCndT2zAdWkxgNUe8O97PeMHon0ju_3Q"))
       .sendJsonObject(jsonObject)
       .onComplete(testContext.succeeding(response -> {
         testContext.verify(() ->
@@ -134,5 +251,6 @@ public class TestOperations {
   @AfterAll
   static void end() {
     webClient.close();
+    webClientSession.close();
   }
 }
