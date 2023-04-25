@@ -16,7 +16,6 @@ public class PostgresTestContainer extends PostgreSQLContainer<PostgresTestConta
     if(container == null) {
       container = new PostgresTestContainer().withDatabaseName(DATABASE_NAME).withUsername("postgres")
         .withPassword("db265");
-        //.withExposedPorts(DATABASE_PORT);
     }
     return container;
   }
@@ -24,13 +23,6 @@ public class PostgresTestContainer extends PostgreSQLContainer<PostgresTestConta
   @Override
   public void start() {
     super.start();
-    //container.get
-//    System.setProperty("DB_URL", container.getJdbcUrl());
-//    System.setProperty("DB_HOST", container.getHost());
-//    System.setProperty("DB_DATABASE", container.getDatabaseName());
-//    System.setProperty("DB_PORT", String.valueOf(container.getFirstMappedPort()));
-//    System.setProperty("DB_USERNAME", container.getUsername());
-//    System.setProperty("DB_PASSWORD", container.getPassword());
   }
 
   @Override
