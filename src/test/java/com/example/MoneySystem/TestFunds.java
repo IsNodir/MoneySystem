@@ -20,7 +20,6 @@ import java.io.IOException;
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 @ExtendWith(VertxExtension.class)
 @Testcontainers
-// extends ContainersEnvironment
 public class TestFunds {
 
   private static WebClient webClient;
@@ -41,6 +40,7 @@ public class TestFunds {
 
     webClient = WebClient.create(vertx);
     webClientSession = WebClientSession.create(webClient);
+
     vertx.deployVerticle(new UsersVerticle(), testContext.succeeding(id -> testContext.completeNow()));
     vertx.deployVerticle(new FundsVerticle(), testContext.succeeding(id -> testContext.completeNow()));
 
@@ -55,31 +55,7 @@ public class TestFunds {
     jsonObject.put("login", "Brad");
     jsonObject.put("password", "111333000");
 
-    webClient.post(8082, "localhost", "/api/v1/users/create")
-      .as(BodyCodec.string())
-      .sendJsonObject(jsonObject)
-      .onComplete(testContext.succeeding(response -> {
-        testContext.verify(() ->
-          Assertions.assertAll(
-            () -> Assertions.assertEquals(200, response.statusCode()),
-            () -> Assertions.assertEquals("User created successfully", response.body())
-          )
-        );
-
-        webClient.post(8082, "localhost", "/api/v1/users/login")
-          .sendJsonObject(jsonObject)
-          .onComplete(testContext.succeeding(response2 -> {
-            testContext.verify(() ->
-              Assertions.assertAll(
-                () -> Assertions.assertEquals(200, response2.statusCode()),
-                () -> Assertions.assertTrue(!response2.getHeader("JWT").toString().isEmpty())
-              )
-            );
-
-            webClientSession.addHeader("Authorization", "Bearer %s".formatted(response2.getHeader("JWT")));
-            testContext.completeNow();
-          }));
-      }));
+    CreateAndAuthorizeUserTest.initiateUser(testContext, webClient, webClientSession, jsonObject);
   }
 
   @Test
@@ -114,7 +90,7 @@ public class TestFunds {
     JsonObject jsonObject = new JsonObject();
     jsonObject.put("id_user", 1);
     jsonObject.put("dayFrom", "18.02.2023");
-    jsonObject.put("dayTo", "25.04.2023");
+    jsonObject.put("dayTo", "26.04.2023");
 
     webClientSession.get(8081, "localhost", "/api/v1/balance/history")
       .as(BodyCodec.string())
@@ -123,7 +99,9 @@ public class TestFunds {
         testContext.verify(() ->
           Assertions.assertAll(
             () -> Assertions.assertEquals(200, response.statusCode()),
-            () -> Assertions.assertTrue(response.body().contains("Date: 2023-04-20 Balance: 0.0"))
+
+            /** Here date should be changed according to current one */
+            () -> Assertions.assertTrue(response.body().contains("Date: 2023-04-25 Balance: 0.0"))
           )
         );
 

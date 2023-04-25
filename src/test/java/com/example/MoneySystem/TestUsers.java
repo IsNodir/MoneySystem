@@ -53,19 +53,7 @@ public class TestUsers {
     jsonObject.put("login", "Brad");
     jsonObject.put("password", "111333000");
 
-    webClient.post(8082, "localhost", "/api/v1/users/create")
-      .as(BodyCodec.string())
-      .sendJsonObject(jsonObject)
-      .onComplete(testContext.succeeding(response -> {
-        testContext.verify(() ->
-          Assertions.assertAll(
-            () -> Assertions.assertEquals(200, response.statusCode()),
-            () -> Assertions.assertEquals("User created successfully", response.body())
-          )
-        );
-
-        testContext.completeNow();
-      }));
+    CreateAndAuthorizeUserTest.createUser(testContext, webClient, jsonObject);
   }
 
   @Test
@@ -104,7 +92,6 @@ public class TestUsers {
 
     webClientSession.put(8082, "localhost", "/api/v1/users/protected/change-password")
       .as(BodyCodec.string())
-      //.putHeader("Authorization", "Bearer %s".formatted("eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJsb2dpbiI6IkFsbGEiLCJpYXQiOjE2Nzc2MDIyMTV9.u187eQvJGbxBCndT2zAdWkxgNUe8O97PeMHon0ju_3Q"))
       .sendJsonObject(jsonObject)
       .onComplete(testContext.succeeding(response -> {
         testContext.verify(() ->

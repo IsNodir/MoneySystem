@@ -1,6 +1,5 @@
 package com.example.MoneySystem;
 
-import com.example.MoneySystem.Verticles.FundsVerticle;
 import com.example.MoneySystem.Verticles.OperationsVerticle;
 import com.example.MoneySystem.Verticles.UsersVerticle;
 import io.vertx.core.Vertx;
@@ -39,22 +38,13 @@ public class TestOperations {
     System.setProperty("DB_USERNAME", postgreSQLContainer.getUsername());
     System.setProperty("DB_PASSWORD", postgreSQLContainer.getPassword());
 
-    vertx.deployVerticle(new UsersVerticle(), testContext.succeeding(id -> testContext.completeNow()));
-    vertx.deployVerticle(new OperationsVerticle(), testContext.succeeding(id -> testContext.completeNow()));
-
     webClient = WebClient.create(vertx);
     webClientSession = WebClientSession.create(webClient);
 
-    CreateTables.create(postgreSQLContainer.getJdbcUrl());
+    vertx.deployVerticle(new UsersVerticle(), testContext.succeeding(id -> testContext.completeNow()));
+    vertx.deployVerticle(new OperationsVerticle(), testContext.succeeding(id -> testContext.completeNow()));
 
-//    JsonObject user1Json = new JsonObject();
-//    user1Json.put("login", "Brad");
-//    user1Json.put("password", "111333000");
-//    JsonObject user2Json = new JsonObject();
-//    user2Json.put("login", "Alice");
-//    user2Json.put("password", "222444111");
-//    CreateAndAuthorizeUserTest.initiateUser(testContext, webClient, user1Json);
-//    CreateAndAuthorizeUserTest.createUser(testContext, webClient, user2Json);
+    CreateTables.create(postgreSQLContainer.getJdbcUrl());
   }
 
   @Test
@@ -66,32 +56,7 @@ public class TestOperations {
     userJson.put("login", "Brad");
     userJson.put("password", "111333000");
 
-    webClient.post(8082, "localhost", "/api/v1/users/create")
-      .as(BodyCodec.string())
-      .sendJsonObject(userJson)
-      .onComplete(testContext.succeeding(response -> {
-        testContext.verify(() ->
-          Assertions.assertAll(
-            () -> Assertions.assertEquals(200, response.statusCode()),
-            () -> Assertions.assertEquals("User created successfully", response.body())
-          )
-        );
-
-        webClient.post(8082, "localhost", "/api/v1/users/login")
-          .sendJsonObject(userJson)
-          .onComplete(testContext.succeeding(response2 -> {
-            testContext.verify(() ->
-              Assertions.assertAll(
-                () -> Assertions.assertEquals(200, response2.statusCode()),
-                () -> Assertions.assertTrue(!response2.getHeader("JWT").toString().isEmpty())
-              )
-            );
-
-            TestOperations.setWebClientSessionHeader(response2.getHeader("JWT"));
-            testContext.completeNow();
-          }));
-      }))
-      .onFailure(error -> {System.out.println(error.getMessage());});
+    CreateAndAuthorizeUserTest.initiateUser(testContext, webClient, webClientSession, userJson);
   }
 
   @Test
@@ -103,19 +68,7 @@ public class TestOperations {
     userJson.put("login", "Alice");
     userJson.put("password", "222444111");
 
-    webClient.post(8082, "localhost", "/api/v1/users/create")
-      .as(BodyCodec.string())
-      .sendJsonObject(userJson)
-      .onComplete(testContext.succeeding(response -> {
-        testContext.verify(() ->
-          Assertions.assertAll(
-            () -> Assertions.assertEquals(200, response.statusCode()),
-            () -> Assertions.assertEquals("User created successfully", response.body())
-          )
-        );
-
-        testContext.completeNow();
-      }));
+    CreateAndAuthorizeUserTest.createUser(testContext, webClient, userJson);
   }
 
   @Test
