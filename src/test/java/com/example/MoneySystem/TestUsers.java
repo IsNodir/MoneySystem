@@ -38,10 +38,9 @@ public class TestUsers {
     webClient = WebClient.create(vertx);
     webClientSession = WebClientSession.create(webClient);
 
-    vertx.deployVerticle(new UsersVerticle(), testContext.succeeding(usersVerticleId ->
-      testContext.completeNow()));
-
     CreateTables.create(postgreSQLContainer.getJdbcUrl());
+
+    vertx.deployVerticle(new UsersVerticle(), testContext.succeeding(usersVerticleId -> testContext.completeNow()));
   }
 
   @Test
@@ -49,9 +48,9 @@ public class TestUsers {
   @DisplayName("Create User")
   void createUser (VertxTestContext testContext) {
 
-    JsonObject jsonObject = new JsonObject();
-    jsonObject.put("login", "Brad");
-    jsonObject.put("password", "111333000");
+    JsonObject jsonObject = new JsonObject()
+      .put("login", "Brad")
+      .put("password", "111333000");
 
     CreateAndAuthorizeUserTest.createUser(testContext, webClient, jsonObject);
   }
@@ -61,22 +60,22 @@ public class TestUsers {
   @DisplayName("Login Users")
   void loginUser (VertxTestContext testContext) {
 
-    JsonObject jsonObject = new JsonObject();
-    jsonObject.put("login", "Brad");
-    jsonObject.put("password", "111333000");
+    JsonObject jsonObject = new JsonObject()
+      .put("login", "Brad")
+      .put("password", "111333000");
 
     webClient.post(8082, "localhost", "/api/v1/users/login")
       .sendJsonObject(jsonObject)
       .onComplete(testContext.succeeding(response -> {
-        testContext.verify(() ->
+        testContext.verify(() -> {
           Assertions.assertAll(
             () -> Assertions.assertEquals(200, response.statusCode()),
             () -> Assertions.assertTrue(!response.getHeader("JWT").toString().isEmpty())
-          )
-        );
+          );
+          testContext.completeNow();
+        });
 
         webClientSession.addHeader("Authorization", "Bearer %s".formatted(response.getHeader("JWT")));
-        testContext.completeNow();
       }));
   }
 
@@ -85,23 +84,23 @@ public class TestUsers {
   @DisplayName("Protected Change Password User")
   void changePasswordUser (VertxTestContext testContext) {
 
-    JsonObject jsonObject = new JsonObject();
-    jsonObject.put("login", "Brad");
-    jsonObject.put("password", "111333000");
-    jsonObject.put("new_password", "579109090");
+    JsonObject jsonObject = new JsonObject()
+      .put("login", "Brad")
+      .put("password", "111333000")
+      .put("new_password", "579109090");
 
     webClientSession.put(8082, "localhost", "/api/v1/users/protected/change-password")
       .as(BodyCodec.string())
       .sendJsonObject(jsonObject)
       .onComplete(testContext.succeeding(response -> {
-        testContext.verify(() ->
+        testContext.verify(() -> {
           Assertions.assertAll(
             () -> Assertions.assertEquals(200, response.statusCode()),
             () -> Assertions.assertTrue(response.body().contains("Password updated successfully for"))
-          )
-        );
+          );
+          testContext.completeNow();
+        });
 
-        testContext.completeNow();
       }));
   }
 

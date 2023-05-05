@@ -41,19 +41,19 @@ public class TestFunds {
     webClient = WebClient.create(vertx);
     webClientSession = WebClientSession.create(webClient);
 
-    vertx.deployVerticle(new UsersVerticle(), testContext.succeeding(id -> testContext.completeNow()));
-    vertx.deployVerticle(new FundsVerticle(), testContext.succeeding(id -> testContext.completeNow()));
-
     CreateTables.create(postgreSQLContainer.getJdbcUrl());
+
+    vertx.deployVerticle(new UsersVerticle(), testContext.succeeding());
+    vertx.deployVerticle(new FundsVerticle(), testContext.succeeding(id -> testContext.completeNow()));
   }
 
   @Test
   @Order(1)
   @DisplayName("Create and authorize user")
   void initiateUser (VertxTestContext testContext) {
-    JsonObject jsonObject = new JsonObject();
-    jsonObject.put("login", "Brad");
-    jsonObject.put("password", "111333000");
+    JsonObject jsonObject = new JsonObject()
+      .put("login", "Brad")
+      .put("password", "111333000");
 
     CreateAndAuthorizeUserTest.initiateUser(testContext, webClient, webClientSession, jsonObject);
   }
@@ -63,22 +63,21 @@ public class TestFunds {
   @DisplayName("Current Balance")
   void currentBalance (VertxTestContext testContext) {
 
-    JsonObject jsonObject = new JsonObject();
-    jsonObject.put("id", 1);
+    JsonObject jsonObject = new JsonObject()
+      .put("id", 1);
 
     webClientSession.get(8081, "localhost", "/api/v1/balance/current")
       .as(BodyCodec.string())
       .sendJsonObject(jsonObject)
       .onComplete(testContext.succeeding(response -> {
-          testContext.verify(() ->
+          testContext.verify(() -> {
             Assertions.assertAll(
               () -> Assertions.assertEquals(200, response.statusCode()),
               () -> Assertions.assertEquals("Balance: 0.0", response.body())
               //readFileAsJsonObject("src/test/resources/funds/currentBalance.json")
-            )
-          );
-
-          testContext.completeNow();
+            );
+            testContext.completeNow();
+          });
         }));
   }
 
@@ -87,25 +86,24 @@ public class TestFunds {
   @DisplayName("Balance History")
   void balanceHistory (VertxTestContext testContext) {
 
-    JsonObject jsonObject = new JsonObject();
-    jsonObject.put("id_user", 1);
-    jsonObject.put("dayFrom", "18.02.2023");
-    jsonObject.put("dayTo", "26.04.2023");
+    JsonObject jsonObject = new JsonObject()
+      .put("id_user", 1)
+      .put("dayFrom", "18.02.2023")
+      .put("dayTo", "25.05.2023");
 
     webClientSession.get(8081, "localhost", "/api/v1/balance/history")
       .as(BodyCodec.string())
       .sendJsonObject(jsonObject)
       .onComplete(testContext.succeeding(response -> {
-        testContext.verify(() ->
+        testContext.verify(() -> {
           Assertions.assertAll(
             () -> Assertions.assertEquals(200, response.statusCode()),
 
             /** Here date should be changed according to current one */
-            () -> Assertions.assertTrue(response.body().contains("Date: 2023-04-25 Balance: 0.0"))
-          )
-        );
-
-        testContext.completeNow();
+            () -> Assertions.assertTrue(response.body().contains("Date: 2023-05-05 Balance: 0.0"))
+          );
+          testContext.completeNow();
+        });
       }));
   }
 
