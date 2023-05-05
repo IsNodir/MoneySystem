@@ -65,6 +65,25 @@ public class CreateAndAuthorizeUserTest {
       }));
   }
 
+  @Test
+  @DisplayName("Login User")
+  public static void loginUser (VertxTestContext testContext, WebClient webClient, WebClientSession webClientSession, JsonObject userJson) {
+
+    webClient.post(8082, "localhost", "/api/v1/users/login")
+      .sendJsonObject(userJson)
+      .onComplete(testContext.succeeding(response -> {
+        testContext.verify(() -> {
+          Assertions.assertAll(
+            () -> Assertions.assertEquals(200, response.statusCode()),
+            () -> Assertions.assertTrue(!response.getHeader("JWT").toString().isEmpty())
+          );
+          testContext.completeNow();
+        });
+
+        webClientSession.addHeader("Authorization", "Bearer %s".formatted(response.getHeader("JWT")));
+      }));
+  }
+
 }
 
 

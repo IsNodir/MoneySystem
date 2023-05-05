@@ -57,26 +57,14 @@ public class TestUsers {
 
   @Test
   @Order(2)
-  @DisplayName("Login Users")
+  @DisplayName("Login User")
   void loginUser (VertxTestContext testContext) {
 
     JsonObject jsonObject = new JsonObject()
       .put("login", "Brad")
       .put("password", "111333000");
 
-    webClient.post(8082, "localhost", "/api/v1/users/login")
-      .sendJsonObject(jsonObject)
-      .onComplete(testContext.succeeding(response -> {
-        testContext.verify(() -> {
-          Assertions.assertAll(
-            () -> Assertions.assertEquals(200, response.statusCode()),
-            () -> Assertions.assertTrue(!response.getHeader("JWT").toString().isEmpty())
-          );
-          testContext.completeNow();
-        });
-
-        webClientSession.addHeader("Authorization", "Bearer %s".formatted(response.getHeader("JWT")));
-      }));
+    CreateAndAuthorizeUserTest.loginUser(testContext, webClient, webClientSession, jsonObject);
   }
 
   @Test
@@ -102,6 +90,17 @@ public class TestUsers {
         });
 
       }));
+  }
+
+  @Test
+  @Order(4)
+  @DisplayName("Login User with new password")
+  void loginUserWithNewPassword (VertxTestContext testContext) {
+    JsonObject jsonObject = new JsonObject()
+      .put("login", "Brad")
+      .put("password", "579109090");
+
+    CreateAndAuthorizeUserTest.loginUser(testContext, webClient, webClientSession, jsonObject);
   }
 
   @AfterAll
